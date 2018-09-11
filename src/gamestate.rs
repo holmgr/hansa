@@ -1,7 +1,6 @@
-use ggez::event;
-use ggez::graphics;
-use ggez::timer;
-use ggez::{Context, GameResult};
+use ggez::{
+    event, graphics, timer, {Context, GameResult},
+};
 
 /// Handles and holds all game information.
 pub enum GameState {
