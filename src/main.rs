@@ -2,6 +2,7 @@ extern crate ggez;
 use ggez::{conf, event, Context};
 
 mod gamestate;
+pub mod world;
 
 pub fn main() {
     // Load ggez configuration
