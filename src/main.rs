@@ -1,8 +1,16 @@
+#[macro_use]
+extern crate serde_derive;
 extern crate ggez;
+extern crate nalgebra as na;
+extern crate serde;
+extern crate serde_json;
 use ggez::{conf, event, Context};
 
 mod gamestate;
+pub mod tile;
 pub mod world;
+
+pub type Position = na::Point2<i32>;
 
 pub fn main() {
     // Load ggez configuration
