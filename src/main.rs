@@ -5,6 +5,7 @@ extern crate nalgebra as na;
 extern crate serde;
 extern crate serde_json;
 use ggez::{conf, event, Context};
+use std::{env, path};
 
 mod gamestate;
 pub mod tile;
@@ -24,6 +25,13 @@ pub fn main() {
 
     // Create game context.
     let ctx = &mut Context::load_from_conf("hansa", "holmgr", c).unwrap();
+
+    // Add resources folder to virtual filesystem.
+    if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
+        let mut path = path::PathBuf::from(manifest_dir);
+        path.push("resources");
+        ctx.filesystem.mount(&path, true);
+    }
 
     // Start game.
     let state = &mut gamestate::GameState::new(ctx).unwrap();
