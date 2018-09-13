@@ -13,18 +13,22 @@ pub mod world;
 
 pub type Position = na::Point2<i32>;
 
-pub fn main() {
-    // Load ggez configuration
-    let c = conf::Conf {
-        window_setup: conf::WindowSetup {
-            samples: conf::NumSamples::Sixteen,
-            ..Default::default()
-        },
-        ..Default::default()
-    };
+static GAME_ID: &str = "hansa";
+static AUTHOR: &str = "holmgr";
 
+/// Attempts to load game context.
+fn load_context() -> Context {
+    let mut default_conf = conf::Conf::new();
+    default_conf.window_mode.fullscreen_type = conf::FullscreenType::Off;
+    default_conf.window_setup.samples = conf::NumSamples::Sixteen;
+    default_conf.window_setup.resizable = true;
+    default_conf.window_setup.allow_highdpi = true;
+    Context::load_from_conf(GAME_ID, AUTHOR, default_conf).unwrap()
+}
+
+pub fn main() {
     // Create game context.
-    let ctx = &mut Context::load_from_conf("hansa", "holmgr", c).unwrap();
+    let mut ctx = load_context();
 
     // Add resources folder to virtual filesystem.
     if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
@@ -34,8 +38,8 @@ pub fn main() {
     }
 
     // Start game.
-    let state = &mut gamestate::GameState::new(ctx).unwrap();
-    if let Err(e) = event::run(ctx, state) {
+    let state = &mut gamestate::GameState::new(&mut ctx).unwrap();
+    if let Err(e) = event::run(&mut ctx, state) {
         println!("Error encountered: {}", e);
     } else {
         println!("Game exited cleanly.");
