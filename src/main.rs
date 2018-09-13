@@ -26,6 +26,14 @@ fn load_context() -> Context {
     Context::load_from_conf(GAME_ID, AUTHOR, default_conf).unwrap()
 }
 
+/// Attempt to set the correct screen resolution.
+fn set_optimal_resolution(ctx: &mut Context) {
+    if let Ok(screen_modes) = ggez::graphics::get_fullscreen_modes(&ctx, 0) {
+        let (width, height) = screen_modes[0];
+        ggez::graphics::set_resolution(ctx, width, height).unwrap();
+    }
+}
+
 pub fn main() {
     // Create game context.
     let mut ctx = load_context();
@@ -36,6 +44,7 @@ pub fn main() {
         path.push("resources");
         ctx.filesystem.mount(&path, true);
     }
+    set_optimal_resolution(&mut ctx);
 
     // Start game.
     let state = &mut gamestate::GameState::new(&mut ctx).unwrap();
