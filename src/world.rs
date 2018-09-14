@@ -1,22 +1,28 @@
-use std::{collections::HashMap, iter::FromIterator};
+use std::{collections::HashMap, iter::FromIterator, iter::Iterator};
 use tile::Tile;
 
 use Position;
 
 /// Holds all information on the game world.
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct World {
     map: HashMap<Position, Tile>,
 }
 
 impl World {
     /// Creates a new world.
-    fn new<I>(tiles: I) -> Self
+    pub fn new<I>(tiles: I) -> Self
     where
         I: Iterator<Item = (Position, Tile)>,
     {
         World {
             map: HashMap::from_iter(tiles),
         }
+    }
+
+    /// Returns a iterator over all map tiles and their position.
+    pub fn tiles(&self) -> impl Iterator<Item = (&Position, &Tile)> {
+        self.map.iter()
     }
 }
 

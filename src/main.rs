@@ -20,9 +20,10 @@ static AUTHOR: &str = "holmgr";
 fn load_context() -> Context {
     let mut default_conf = conf::Conf::new();
     default_conf.window_mode.fullscreen_type = conf::FullscreenType::Off;
-    default_conf.window_setup.samples = conf::NumSamples::Sixteen;
+    default_conf.window_setup.samples = conf::NumSamples::Two;
     default_conf.window_setup.resizable = true;
-    default_conf.window_setup.allow_highdpi = true;
+    //default_conf.window_setup.allow_highdpi = true;
+    default_conf.window_setup.allow_highdpi = false;
     Context::load_from_conf(GAME_ID, AUTHOR, default_conf).unwrap()
 }
 
@@ -30,7 +31,20 @@ fn load_context() -> Context {
 fn set_optimal_resolution(ctx: &mut Context) {
     if let Ok(screen_modes) = ggez::graphics::get_fullscreen_modes(&ctx, 0) {
         let (width, height) = screen_modes[0];
-        ggez::graphics::set_resolution(ctx, width, height).unwrap();
+        println!("{},{}", width, height);
+        ggez::graphics::set_mode(
+            ctx,
+            conf::WindowMode {
+                width,
+                height,
+                fullscreen_type: conf::FullscreenType::Desktop,
+                ..Default::default()
+            },
+        ).unwrap();
+        ggez::graphics::set_screen_coordinates(
+            ctx,
+            ggez::graphics::Rect::new_i32(0, 0, width as i32, height as i32),
+        ).unwrap();
     }
 }
 
