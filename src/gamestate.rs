@@ -19,6 +19,7 @@ const GRID_HEIGTH: u32 = 15;
 /// FUCK Apple OpenGL implementation.
 static MACBOOK_SCALING: u32 = 2;
 
+/// Load world map from image file, mapping RGB to tiles.
 fn load_map(ctx: &mut Context) -> Vec<(Position, Tile)> {
     let mut map_file = ctx.filesystem.open(MAP_PATH).unwrap();
     let mut header_buffer = [0; 58];
@@ -44,6 +45,7 @@ fn load_map(ctx: &mut Context) -> Vec<(Position, Tile)> {
     result
 }
 
+/// Setup a basic spritebatch for sprites that will not move.
 fn configure_base_batch<'a>(
     ctx: &mut Context,
     batch: &mut graphics::spritebatch::SpriteBatch,

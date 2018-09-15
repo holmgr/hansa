@@ -22,8 +22,7 @@ fn load_context() -> Context {
     default_conf.window_mode.fullscreen_type = conf::FullscreenType::Off;
     default_conf.window_setup.samples = conf::NumSamples::Two;
     default_conf.window_setup.resizable = true;
-    //default_conf.window_setup.allow_highdpi = true;
-    default_conf.window_setup.allow_highdpi = false;
+    default_conf.window_setup.allow_highdpi = false; // Diallow due to scaling bug.
     Context::load_from_conf(GAME_ID, AUTHOR, default_conf).unwrap()
 }
 
