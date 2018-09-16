@@ -24,6 +24,11 @@ impl World {
     pub fn tiles(&self) -> impl Iterator<Item = (&Position, &Tile)> {
         self.map.iter()
     }
+
+    /// Returns the tile at the given position.
+    pub fn tile(&self, position: Position) -> Option<&Tile> {
+        self.map.get(&position)
+    }
 }
 
 impl Default for World {

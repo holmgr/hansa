@@ -46,23 +46,66 @@ fn load_map(ctx: &mut Context) -> Vec<(Position, Tile)> {
 }
 
 /// Setup a basic spritebatch for sprites that will not move.
-fn configure_base_batch<'a>(
+fn configure_base_batch(
     ctx: &mut Context,
     batch: &mut graphics::spritebatch::SpriteBatch,
-    tiles: impl Iterator<Item = (&'a Position, &'a Tile)>,
+    world: &World,
 ) {
     // Find correct cell with for scaling grid.
     let (window_width, _) = graphics::get_drawable_size(ctx);
     let cell_size = MACBOOK_SCALING * window_width / GRID_WIDTH;
 
-    for (position, tile) in tiles {
-        if *tile == Tile::Water {
-            // TODO: Check neighbors to get to know whether to use corner tile etc.
-            let dest = graphics::Point2::new(
-                (position.coords.x * cell_size as i32) as f32,
-                (position.coords.y * cell_size as i32) as f32,
-            );
+    for i in 0..GRID_WIDTH {
+        for j in 0..GRID_HEIGTH {
+            let curr_cell = world.tile(Position::new(i as i32, j as i32)).unwrap();
+            let north_cell = world.tile(Position::new(i as i32, j as i32 - 1));
+            let east_cell = world.tile(Position::new(i as i32 + 1, j as i32));
+            let south_cell = world.tile(Position::new(i as i32, j as i32 + 1));
+            let west_cell = world.tile(Position::new(i as i32 - 1, j as i32));
+
+            // Tile size is handled a bit oddly in the game engine.
+            let tile_size = 65. / 256.;
+            let tile_offset = 64. / 256.;
+
+            // Check neighbors to determine which actual sprite should be used.
+            let src = match (curr_cell, north_cell, east_cell, south_cell, west_cell) {
+                (Tile::Water, _, _, _, _) => graphics::Rect::new(0., 0., tile_size, tile_size),
+                (
+                    Tile::Land,
+                    Some(Tile::Water),
+                    Some(Tile::Water),
+                    Some(Tile::Land),
+                    Some(Tile::Land),
+                ) => graphics::Rect::new(0.0, tile_offset, tile_size, tile_size),
+                (
+                    Tile::Land,
+                    Some(Tile::Land),
+                    Some(Tile::Water),
+                    Some(Tile::Water),
+                    Some(Tile::Land),
+                ) => graphics::Rect::new(1. * tile_offset, tile_offset, tile_size, tile_size),
+                (
+                    Tile::Land,
+                    Some(Tile::Land),
+                    Some(Tile::Land),
+                    Some(Tile::Water),
+                    Some(Tile::Water),
+                ) => graphics::Rect::new(2. * tile_offset, tile_offset, tile_size, tile_size),
+                (
+                    Tile::Land,
+                    Some(Tile::Water),
+                    Some(Tile::Land),
+                    Some(Tile::Land),
+                    Some(Tile::Water),
+                ) => graphics::Rect::new(3. * tile_offset, tile_offset, tile_size, tile_size),
+                (Tile::Land, _, _, _, _) => {
+                    graphics::Rect::new(tile_offset, 0., tile_size, tile_size)
+                }
+            };
+
+            let dest = graphics::Point2::new((i * cell_size) as f32, (j * cell_size) as f32);
             let param = graphics::DrawParam {
+                src,
                 dest,
                 scale: graphics::Point2::new(cell_size as f32 / 64., cell_size as f32 / 64.),
                 ..Default::default()
@@ -91,7 +134,7 @@ impl GameState {
         // Load spritebatch for effective drawing of sprites.
         let image = graphics::Image::new(ctx, TILESET_PATH)?;
         let mut batch = graphics::spritebatch::SpriteBatch::new(image);
-        configure_base_batch(ctx, &mut batch, world.tiles());
+        configure_base_batch(ctx, &mut batch, &world);
 
         let state = GameState::Playing {
             frames: 0,
