@@ -179,22 +179,25 @@ impl event::EventHandler for GameState {
                 world,
                 ..
             } => {
+                let (window_width, _) = graphics::get_drawable_size(ctx);
+                let cell_size = (config.scaling * window_width / GRID_WIDTH) as i32;
+
+                // Check that we start to draw from a port.
+                // TODO: Check that this is allowed by further by the game rules.
+                let mouse_position = Position::new(
+                    config.scaling as i32 * x / cell_size,
+                    config.scaling as i32 * y / cell_size,
+                );
                 *drawer = match drawer {
                     // Drawing already in progress, stop drawing.
-                    // TODO: Create/extend an actual route if the path is valid.
-                    Some(d) => None,
+                    Some(d) => {
+                        if world.port(mouse_position).is_some() {
+                            // TODO: Add an actual route here if game rules allow.
+                        }
+                        None
+                    },
                     // Start drawing a new path
-                    // TODO: Only allow path drawing between ports.
                     None => {
-                        let (window_width, _) = graphics::get_drawable_size(ctx);
-                        let cell_size = (config.scaling * window_width / GRID_WIDTH) as i32;
-
-                        // Check that we start to draw from a port.
-                        // TODO: Check that this is allowed by further by the game rules.
-                        let mouse_position = Position::new(
-                            config.scaling as i32 * x / cell_size,
-                            config.scaling as i32 * y / cell_size,
-                        );
                         if world.port(mouse_position).is_some() {
                             Some(PathDrawer::new(Position::new(
                                 config.scaling as i32 * x / cell_size,
