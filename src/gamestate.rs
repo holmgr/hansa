@@ -168,7 +168,7 @@ impl event::EventHandler for GameState {
     /// Handle mouse down events (drawing of paths etc.)
     fn mouse_button_down_event(&mut self,ctx: &mut Context, button: event::MouseButton, x: i32,y: i32) {
         match self {
-            GameState::Playing { drawer, config, .. } => {
+            GameState::Playing { drawer, config, world, .. } => {
                 *drawer = match drawer {
                     // Drawing already in progress, stop drawing.
                     // TODO: Create/extend an actual route if the path is valid.
@@ -180,7 +180,16 @@ impl event::EventHandler for GameState {
                     None => {
                         let (window_width, _) = graphics::get_drawable_size(ctx);
                         let cell_size = (config.scaling * window_width / GRID_WIDTH) as i32;
-                        Some(PathDrawer::new(Position::new(config.scaling as i32 * x / cell_size, config.scaling as i32 * y / cell_size)))
+
+                        // Check that we start to draw from a port.
+                        // TODO: Check that this is allowed by further by the game rules.
+                        let mouse_position = Position::new(config.scaling as i32 * x / cell_size, config.scaling as i32 * y / cell_size);
+                        if world.port(mouse_position).is_some() {
+                            Some(PathDrawer::new(Position::new(config.scaling as i32 * x / cell_size, config.scaling as i32 * y / cell_size)))
+                        }
+                        else {
+                            None
+                        }
                     }
                 }
             }
