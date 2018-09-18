@@ -61,7 +61,6 @@ fn load_context() -> Context {
 fn set_optimal_resolution(ctx: &mut Context) {
     if let Ok(screen_modes) = ggez::graphics::get_fullscreen_modes(&ctx, 0) {
         let (width, height) = screen_modes[0];
-        println!("{},{}", width, height);
         ggez::graphics::set_mode(
             ctx,
             conf::WindowMode {
@@ -79,7 +78,6 @@ fn set_optimal_resolution(ctx: &mut Context) {
 }
 
 pub fn main() {
-
     // Initialize default config, set specified parameters from command line.
     let mut config = config::Config::default();
     let args: Vec<String> = env::args().collect();

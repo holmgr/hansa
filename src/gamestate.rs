@@ -50,7 +50,6 @@ fn load_world(ctx: &mut Context) -> World {
                 _ => map.push((position, Tile::Land)),
             }
         });
-    println!("Added {} ports", ports.len());
     let world = World::new(map.into_iter(), ports.into_iter());
     world
 }
@@ -211,7 +210,9 @@ impl event::EventHandler for GameState {
                 batch,
                 drawer,
             } => {
-                //println!("FPS: {:.1}", timer::get_fps(ctx));
+                if *frames % 100 == 0 {
+                    println!("FPS: {:.1}", timer::get_fps(ctx));
+                }
                 graphics::clear(ctx);
                 graphics::set_background_color(ctx, graphics::Color::from((243, 243, 236)));
                 // Draw base batch.
