@@ -6,12 +6,16 @@ type Path = (i32, Vec<Position>);
 pub struct PathDrawer {
     from: Position,
     to: Position,
-    path: Option<Path>
+    path: Option<Path>,
 }
 
 impl PathDrawer {
     pub fn new(from: Position) -> Self {
-        PathDrawer { from, to: from, path: None }
+        PathDrawer {
+            from,
+            to: from,
+            path: None,
+        }
     }
 
     pub fn update(&mut self, new_to: Position, world: &World) {

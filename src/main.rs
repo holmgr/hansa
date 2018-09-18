@@ -5,14 +5,14 @@ extern crate nalgebra as na;
 extern crate serde;
 extern crate serde_json;
 use ggez::{conf, event, Context};
-use std::{env, path::PathBuf, cmp::Ordering};
+use std::{cmp::Ordering, env, path::PathBuf};
 
+pub mod config;
 mod gamestate;
+pub mod path;
+pub mod port;
 pub mod tile;
 pub mod world;
-pub mod port;
-pub mod config;
-pub mod path;
 
 /// General position type.
 pub type Position = na::Point2<i32>;
@@ -20,7 +20,7 @@ pub type Position = na::Point2<i32>;
 /// Ordered position based on weight.
 pub struct OrdPosition {
     pub position: Position,
-    pub weight: i32
+    pub weight: i32,
 }
 
 impl Ord for OrdPosition {
@@ -42,7 +42,6 @@ impl PartialEq for OrdPosition {
 }
 
 impl Eq for OrdPosition {}
-
 
 static GAME_ID: &str = "hansa";
 static AUTHOR: &str = "holmgr";
@@ -81,7 +80,10 @@ pub fn main() {
     // Initialize default config, set specified parameters from command line.
     let mut config = config::Config::default();
     let args: Vec<String> = env::args().collect();
-    if args.iter().find(|ref arg| arg.as_str() == "--fuck-apple").is_some() {
+    if args
+        .iter()
+        .any(|ref arg| arg.as_str() == "--fuck-apple")
+    {
         config.scaling = 2;
     }
 

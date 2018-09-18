@@ -1,5 +1,3 @@
-
-
 /// Holds game specific configurations.
 pub struct Config {
     pub scaling: u32, // Scaling needs to be handled due to Apples OpenGL implementation.
@@ -7,8 +5,6 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config {
-            scaling: 1
-        }
+        Config { scaling: 1 }
     }
 }

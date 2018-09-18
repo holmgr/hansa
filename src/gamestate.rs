@@ -3,12 +3,12 @@ use ggez::{
 };
 use std::io::{BufRead, BufReader, Read};
 
-use tile::Tile;
-use port::Port;
-use world::World;
 use config::Config;
-use Position;
 use path::PathDrawer;
+use port::Port;
+use tile::Tile;
+use world::World;
+use Position;
 
 const TILESET_PATH: &str = "/tileset.png";
 const MAP_PATH: &str = "/map.ppm";
@@ -46,12 +46,11 @@ fn load_world(ctx: &mut Context) -> World {
                 [0, 0, 0] => {
                     ports.push((position, Port::new()));
                     map.push((position, Tile::Land));
-                },
+                }
                 _ => map.push((position, Tile::Land)),
             }
         });
-    let world = World::new(map.into_iter(), ports.into_iter());
-    world
+    World::new(map.into_iter(), ports.into_iter())
 }
 
 /// Setup a basic spritebatch for sprites that will not move.
@@ -60,7 +59,7 @@ fn configure_base_batch(
     config: &Config,
     batch: &mut graphics::spritebatch::SpriteBatch,
     world: &World,
-    ) {
+) {
     // Find correct cell with for scaling grid.
     let (window_width, _) = graphics::get_drawable_size(ctx);
     let cell_size = config.scaling * window_width / GRID_WIDTH;
@@ -133,7 +132,7 @@ pub enum GameState {
         frames: usize,
         batch: graphics::spritebatch::SpriteBatch,
         world: World,
-        drawer: Option<PathDrawer>
+        drawer: Option<PathDrawer>,
     },
 }
 
@@ -166,15 +165,24 @@ impl event::EventHandler for GameState {
     }
 
     /// Handle mouse down events (drawing of paths etc.)
-    fn mouse_button_down_event(&mut self,ctx: &mut Context, button: event::MouseButton, x: i32,y: i32) {
+    fn mouse_button_down_event(
+        &mut self,
+        ctx: &mut Context,
+        _button: event::MouseButton,
+        x: i32,
+        y: i32,
+    ) {
         match self {
-            GameState::Playing { drawer, config, world, .. } => {
+            GameState::Playing {
+                drawer,
+                config,
+                world,
+                ..
+            } => {
                 *drawer = match drawer {
                     // Drawing already in progress, stop drawing.
                     // TODO: Create/extend an actual route if the path is valid.
-                    Some(d) => {
-                        None
-                    }
+                    Some(d) => None,
                     // Start drawing a new path
                     // TODO: Only allow path drawing between ports.
                     None => {
@@ -183,11 +191,16 @@ impl event::EventHandler for GameState {
 
                         // Check that we start to draw from a port.
                         // TODO: Check that this is allowed by further by the game rules.
-                        let mouse_position = Position::new(config.scaling as i32 * x / cell_size, config.scaling as i32 * y / cell_size);
+                        let mouse_position = Position::new(
+                            config.scaling as i32 * x / cell_size,
+                            config.scaling as i32 * y / cell_size,
+                        );
                         if world.port(mouse_position).is_some() {
-                            Some(PathDrawer::new(Position::new(config.scaling as i32 * x / cell_size, config.scaling as i32 * y / cell_size)))
-                        }
-                        else {
+                            Some(PathDrawer::new(Position::new(
+                                config.scaling as i32 * x / cell_size,
+                                config.scaling as i32 * y / cell_size,
+                            )))
+                        } else {
                             None
                         }
                     }
@@ -197,13 +210,32 @@ impl event::EventHandler for GameState {
     }
 
     /// Handle mouse movement events (updating path drawing etc.)
-    fn mouse_motion_event(&mut self,ctx: &mut Context, _button: event::MouseState, x: i32,y: i32, _xrel: i32, _yrel: i32) {
+    fn mouse_motion_event(
+        &mut self,
+        ctx: &mut Context,
+        _button: event::MouseState,
+        x: i32,
+        y: i32,
+        _xrel: i32,
+        _yrel: i32,
+    ) {
         match self {
-            GameState::Playing { drawer, config, world, .. } => {
+            GameState::Playing {
+                drawer,
+                config,
+                world,
+                ..
+            } => {
                 let (window_width, _) = graphics::get_drawable_size(ctx);
                 let cell_size = (config.scaling * window_width / GRID_WIDTH) as i32;
                 if let Some(d) = drawer {
-                    d.update(Position::new(config.scaling as i32 * x / cell_size, config.scaling as i32 * y / cell_size), &world);
+                    d.update(
+                        Position::new(
+                            config.scaling as i32 * x / cell_size,
+                            config.scaling as i32 * y / cell_size,
+                        ),
+                        &world,
+                    );
                 }
             }
         }
@@ -239,13 +271,18 @@ impl event::EventHandler for GameState {
                 let tile_size = 65. / 256.;
                 let tile_offset = 64. / 256.;
 
-
                 // Draw all ports.
                 for (position, _) in world.ports() {
                     let param = graphics::DrawParam {
                         src: graphics::Rect::new(0., 2. * tile_offset, tile_size, tile_size),
-                        dest: graphics::Point2::new((position.coords.x * cell_size) as f32, (position.coords.y * cell_size) as f32),
-                        scale: graphics::Point2::new(cell_size as f32 / 64., cell_size as f32 / 64.),
+                        dest: graphics::Point2::new(
+                            (position.coords.x * cell_size) as f32,
+                            (position.coords.y * cell_size) as f32,
+                        ),
+                        scale: graphics::Point2::new(
+                            cell_size as f32 / 64.,
+                            cell_size as f32 / 64.,
+                        ),
                         ..Default::default()
                     };
                     upper_batch.add(param);
@@ -256,17 +293,27 @@ impl event::EventHandler for GameState {
                     if let Some((_, path)) = d.path() {
                         for position in path {
                             let param = graphics::DrawParam {
-                                src: graphics::Rect::new(tile_offset, 2. * tile_offset, tile_size, tile_size),
-                                dest: graphics::Point2::new((position.coords.x * cell_size) as f32, (position.coords.y * cell_size) as f32),
-                                scale: graphics::Point2::new(cell_size as f32 / 64., cell_size as f32 / 64.),
+                                src: graphics::Rect::new(
+                                    tile_offset,
+                                    2. * tile_offset,
+                                    tile_size,
+                                    tile_size,
+                                ),
+                                dest: graphics::Point2::new(
+                                    (position.coords.x * cell_size) as f32,
+                                    (position.coords.y * cell_size) as f32,
+                                ),
+                                scale: graphics::Point2::new(
+                                    cell_size as f32 / 64.,
+                                    cell_size as f32 / 64.,
+                                ),
                                 ..Default::default()
                             };
                             upper_batch.add(param);
-
                         }
                     }
                 }
-                graphics::draw_ex(ctx, &mut upper_batch, graphics::DrawParam::default())?;
+                graphics::draw_ex(ctx, &upper_batch, graphics::DrawParam::default())?;
                 graphics::present(ctx);
 
                 *frames += 1;
