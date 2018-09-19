@@ -3,6 +3,7 @@ use ggez::{
 };
 use std::io::{BufRead, BufReader, Read};
 
+use color::ColorSelector;
 use config::Config;
 use path::PathDrawer;
 use port::Port;
@@ -133,6 +134,7 @@ pub enum GameState {
         batch: graphics::spritebatch::SpriteBatch,
         world: World,
         drawer: Option<PathDrawer>,
+        color_selector: ColorSelector,
     },
 }
 
@@ -153,6 +155,7 @@ impl GameState {
             batch,
             world,
             drawer: None,
+            color_selector: ColorSelector::new(),
         };
         Ok(state)
     }
@@ -177,6 +180,7 @@ impl event::EventHandler for GameState {
                 drawer,
                 config,
                 world,
+                color_selector,
                 ..
             } => {
                 let (window_width, _) = graphics::get_drawable_size(ctx);
@@ -184,21 +188,45 @@ impl event::EventHandler for GameState {
 
                 // Check that we start to draw from a port.
                 // TODO: Check that this is allowed by further by the game rules.
-                let mouse_position = Position::new(
+                let mouse_position =
+                    Position::new(config.scaling as i32 * x, config.scaling as i32 * y);
+                let mouse_position_scaled = Position::new(
                     config.scaling as i32 * x / cell_size,
                     config.scaling as i32 * y / cell_size,
                 );
+
+                // Check if some mouse button on some color.
+                let num_colors = color_selector.colors().count() as u32;
+                let color_selector_x_offset = (GRID_WIDTH / 2 - num_colors + 1) as i32 * cell_size;
+                let color_selector_y_offset = (GRID_HEIGTH + 1) as i32 * cell_size;
+
+                for index in 0..num_colors {
+                    let color_position = Position::new(
+                        color_selector_x_offset + (2 * index as i32 * cell_size + cell_size / 2),
+                        color_selector_y_offset + cell_size / 2,
+                    );
+
+                    // Check eucidean distance.
+                    if (color_position.coords.x - mouse_position.coords.x).pow(2)
+                        + (color_position.coords.y - mouse_position.coords.y).pow(2)
+                        < cell_size.pow(2)
+                    {
+                        color_selector.toggle(index as usize);
+                        println!("Toggling color: {:?}", color_selector.selected());
+                    }
+                }
+
                 *drawer = match drawer {
                     // Drawing already in progress, stop drawing.
-                    Some(d) => {
-                        if world.port(mouse_position).is_some() {
+                    Some(_d) => {
+                        if world.port(mouse_position_scaled).is_some() {
                             // TODO: Add an actual route here if game rules allow.
                         }
                         None
-                    },
+                    }
                     // Start drawing a new path
                     None => {
-                        if world.port(mouse_position).is_some() {
+                        if world.port(mouse_position_scaled).is_some() {
                             Some(PathDrawer::new(Position::new(
                                 config.scaling as i32 * x / cell_size,
                                 config.scaling as i32 * y / cell_size,
@@ -253,6 +281,7 @@ impl event::EventHandler for GameState {
                 world,
                 batch,
                 drawer,
+                color_selector,
             } => {
                 if *frames % 100 == 0 {
                     println!("FPS: {:.1}", timer::get_fps(ctx));
@@ -316,6 +345,38 @@ impl event::EventHandler for GameState {
                         }
                     }
                 }
+
+                // Draw color selector
+                // TODO: Make something more elegant which does not assume the number of colors.
+                let num_colors = color_selector.colors().count() as u32;
+                let color_selector_x_offset =
+                    ((GRID_WIDTH / 2 - num_colors + 1) * cell_size as u32) as f32;
+                let color_selector_y_offset = (GRID_HEIGTH as f32 + 1.) * cell_size as f32;
+
+                for (index, color) in color_selector.colors().enumerate() {
+                    let (r, g, b) = color.rgb();
+                    let param = graphics::DrawParam {
+                        src: graphics::Rect::new(
+                            2. * tile_size,
+                            2. * tile_size,
+                            tile_size,
+                            tile_size,
+                        ),
+                        dest: graphics::Point2::new(
+                            color_selector_x_offset + (2 * index as i32 * cell_size) as f32,
+                            (color_selector_y_offset) as f32,
+                        ),
+                        scale: graphics::Point2::new(
+                            cell_size as f32 / 64.,
+                            cell_size as f32 / 64.,
+                        ),
+                        offset: graphics::Point2::new(0.5, 0.5),
+                        color: Some(graphics::Color::from_rgb(r, g, b)),
+                        ..Default::default()
+                    };
+                    upper_batch.add(param);
+                }
+
                 graphics::draw_ex(ctx, &upper_batch, graphics::DrawParam::default())?;
                 graphics::present(ctx);
 

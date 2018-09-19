@@ -7,6 +7,7 @@ extern crate serde_json;
 use ggez::{conf, event, Context};
 use std::{cmp::Ordering, env, path::PathBuf};
 
+pub mod color;
 pub mod config;
 mod gamestate;
 pub mod path;
@@ -80,10 +81,7 @@ pub fn main() {
     // Initialize default config, set specified parameters from command line.
     let mut config = config::Config::default();
     let args: Vec<String> = env::args().collect();
-    if args
-        .iter()
-        .any(|ref arg| arg.as_str() == "--fuck-apple")
-    {
+    if args.iter().any(|ref arg| arg.as_str() == "--fuck-apple") {
         config.scaling = 2;
     }
 
