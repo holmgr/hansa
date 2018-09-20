@@ -15,10 +15,10 @@ const TILESET_PATH: &str = "/tileset.png";
 const MAP_PATH: &str = "/map.ppm";
 
 /// Width of the grid.
-const GRID_WIDTH: u32 = 30;
+const GRID_WIDTH: u32 = 60;
 
 /// Height of the grid.
-const GRID_HEIGTH: u32 = 15;
+const GRID_HEIGTH: u32 = 30;
 
 /// Load world from image file, mapping RGB to tiles.
 fn load_world(ctx: &mut Context) -> World {
@@ -43,7 +43,7 @@ fn load_world(ctx: &mut Context) -> World {
             let index = i as i32;
             let position = Position::new(index % GRID_WIDTH as i32, index / GRID_WIDTH as i32);
             match colors {
-                [205, 232, 247] => map.push((position, Tile::Water)),
+                [0, 0, 255] => map.push((position, Tile::Water)),
                 [0, 0, 0] => {
                     ports.push((position, Port::new()));
                     map.push((position, Tile::Land));
