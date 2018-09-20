@@ -365,6 +365,12 @@ impl event::EventHandler for GameState {
 
                 for (index, color) in color_selector.colors().enumerate() {
                     let (r, g, b) = color.rgb();
+
+                    // Add little scale factor to indicate do the user which color is selected.
+                    let scale_factor = match color_selector.selected() {
+                         Some(selected_color) if selected_color == *color => 1.3,
+                         _ => 1.,
+                    };
                     let param = graphics::DrawParam {
                         src: graphics::Rect::new(
                             2. * tile_size,
@@ -377,8 +383,8 @@ impl event::EventHandler for GameState {
                             (color_selector_y_offset) as f32,
                         ),
                         scale: graphics::Point2::new(
-                            cell_size as f32 / 64.,
-                            cell_size as f32 / 64.,
+                            scale_factor * cell_size as f32 / 64.,
+                            scale_factor * cell_size as f32 / 64.,
                         ),
                         offset: graphics::Point2::new(0.5, 0.5),
                         color: Some(graphics::Color::from_rgb(r, g, b)),
