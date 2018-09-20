@@ -1,3 +1,4 @@
+use color::Color;
 use port::Port;
 use std::{
     collections::{BinaryHeap, HashMap},
@@ -7,14 +8,47 @@ use std::{
 };
 use tile::Tile;
 use OrdPosition;
-
 use Position;
+
+/// Represents a trading route which exists between a series of ports.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Route {
+    port_locations: Vec<Position>,
+}
+
+impl Route {
+    /// Creates a new empty route.
+    pub fn new() -> Route {
+        Route {
+            port_locations: vec![],
+        }
+    }
+
+    /// Adds a new link to this route, inserting it after start first occures.
+    pub fn add_link(&mut self, start: Position, end: Position) {
+        if self.port_locations.is_empty() {
+            self.port_locations.push(start);
+        }
+
+        // TODO: Will not handle case when start does not exist
+        // I.e a path between two nodes, where start is not in the route already.
+        if let Some(index) = self.port_locations.iter().position(|p| *p == start) {
+            self.port_locations.insert(index, end);
+        };
+    }
+
+    /// Returns a slice with all ports locations on this route.
+    pub fn ports(&self) -> &[Position] {
+        &self.port_locations[..]
+    }
+}
 
 /// Holds all information on the game world.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct World {
     map: HashMap<Position, Tile>,
     ports: HashMap<Position, Port>,
+    routes: HashMap<Color, Route>,
 }
 
 impl World {
@@ -27,6 +61,7 @@ impl World {
         World {
             map: HashMap::from_iter(tiles),
             ports: HashMap::from_iter(ports),
+            routes: HashMap::new(),
         }
     }
 
@@ -38,6 +73,17 @@ impl World {
     /// Returns a iterator over all ports and their position.
     pub fn ports(&self) -> impl Iterator<Item = (&Position, &Port)> {
         self.ports.iter()
+    }
+
+    /// Returns a iterator over all routes.
+    pub fn routes(&self) -> impl Iterator<Item = (&Color, &Route)> {
+        self.routes.iter()
+    }
+
+    /// Creates a new route (if non exists) and adds a new link between start and goal.
+    pub fn add_route(&mut self, color: Color, start: Position, goal: Position) {
+        let route = self.routes.entry(color).or_insert_with(Route::new);
+        route.add_link(start, goal);
     }
 
     /// Returns the tile at the given position.
@@ -133,6 +179,7 @@ impl Default for World {
         World {
             map: HashMap::new(),
             ports: HashMap::new(),
+            routes: HashMap::new(),
         }
     }
 }

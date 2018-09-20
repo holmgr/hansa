@@ -29,4 +29,12 @@ impl PathDrawer {
     pub fn path(&self) -> &Option<Path> {
         &self.path
     }
+
+    pub fn from(&self) -> &Position {
+        &self.from
+    }
+
+    pub fn to(&self) -> &Position {
+        &self.to
+    }
 }

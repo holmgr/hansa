@@ -218,15 +218,20 @@ impl event::EventHandler for GameState {
 
                 *drawer = match drawer {
                     // Drawing already in progress, stop drawing.
-                    Some(_d) => {
+                    Some(d) => {
                         if world.port(mouse_position_scaled).is_some() {
-                            // TODO: Add an actual route here if game rules allow.
+                            // Add an actual route here if, ensure we have a color selected.
+                            if let Some(color) = color_selector.selected() {
+                                world.add_route(color, *d.from(), *d.to())
+                            }
                         }
                         None
                     }
                     // Start drawing a new path
                     None => {
-                        if world.port(mouse_position_scaled).is_some() {
+                        if world.port(mouse_position_scaled).is_some()
+                            && color_selector.selected().is_some()
+                        {
                             Some(PathDrawer::new(Position::new(
                                 config.scaling as i32 * x / cell_size,
                                 config.scaling as i32 * y / cell_size,
@@ -322,6 +327,10 @@ impl event::EventHandler for GameState {
 
                 // Check if we have a path and draw upon tile.
                 if let Some(d) = drawer {
+                    let (r, g, b) = color_selector
+                        .selected()
+                        .expect("Drawing without color")
+                        .rgb();
                     if let Some((_, path)) = d.path() {
                         for position in path {
                             let param = graphics::DrawParam {
@@ -339,6 +348,7 @@ impl event::EventHandler for GameState {
                                     cell_size as f32 / 64.,
                                     cell_size as f32 / 64.,
                                 ),
+                                color: Some(graphics::Color::from_rgb(r, g, b)),
                                 ..Default::default()
                             };
                             upper_batch.add(param);
@@ -375,6 +385,36 @@ impl event::EventHandler for GameState {
                         ..Default::default()
                     };
                     upper_batch.add(param);
+                }
+
+                // Draw all routes.
+                for (color, route) in world.routes() {
+                    let (r, g, b) = color.rgb();
+                    for window in route.ports().windows(2) {
+                        if let Some((_, path)) = world.route(window[0], window[1]) {
+                            for position in path {
+                                let param = graphics::DrawParam {
+                                    src: graphics::Rect::new(
+                                        tile_offset,
+                                        2. * tile_offset,
+                                        tile_size,
+                                        tile_size,
+                                    ),
+                                    dest: graphics::Point2::new(
+                                        (position.coords.x * cell_size) as f32,
+                                        (position.coords.y * cell_size) as f32,
+                                    ),
+                                    scale: graphics::Point2::new(
+                                        cell_size as f32 / 64.,
+                                        cell_size as f32 / 64.,
+                                    ),
+                                    color: Some(graphics::Color::from_rgb(r, g, b)),
+                                    ..Default::default()
+                                };
+                                upper_batch.add(param);
+                            }
+                        }
+                    }
                 }
 
                 graphics::draw_ex(ctx, &upper_batch, graphics::DrawParam::default())?;

@@ -1,5 +1,5 @@
 /// A drawable color of the game's color schme.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Color {
     Blue,
     Green,
