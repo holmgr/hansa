@@ -5,23 +5,18 @@ use std::io::{BufRead, BufReader, Read};
 
 use color::ColorSelector;
 use config::Config;
-use path::PathDrawer;
+use draw::SpriteDrawer;
 use port::Port;
-use tile::Tile;
+use route::RouteBuilder;
+use tile::{Tile, TileKind};
 use world::World;
 use Position;
 
 const TILESET_PATH: &str = "/tileset.png";
 const MAP_PATH: &str = "/map.ppm";
 
-/// Width of the grid.
-const GRID_WIDTH: u32 = 60;
-
-/// Height of the grid.
-const GRID_HEIGTH: u32 = 30;
-
 /// Load world from image file, mapping RGB to tiles.
-fn load_world(ctx: &mut Context) -> World {
+fn load_world(ctx: &mut Context, config: &Config) -> World {
     let mut map_file = ctx.filesystem.open(MAP_PATH).unwrap();
     let mut header_buffer = [0; 58];
     map_file.read_exact(&mut header_buffer).unwrap();
@@ -41,89 +36,20 @@ fn load_world(ctx: &mut Context) -> World {
         .enumerate()
         .for_each(|(i, colors)| {
             let index = i as i32;
-            let position = Position::new(index % GRID_WIDTH as i32, index / GRID_WIDTH as i32);
+            let position = Position::new(
+                index % config.grid_width as i32,
+                index / config.grid_width as i32,
+            );
             match colors {
-                [0, 0, 255] => map.push((position, Tile::Water)),
+                [0, 0, 255] => map.push(Tile::new(position, TileKind::Water)),
                 [0, 0, 0] => {
-                    ports.push((position, Port::new()));
-                    map.push((position, Tile::Land));
+                    ports.push(Port::new(position));
+                    map.push(Tile::new(position, TileKind::Land));
                 }
-                _ => map.push((position, Tile::Land)),
+                _ => map.push(Tile::new(position, TileKind::Land)),
             }
         });
     World::new(map.into_iter(), ports.into_iter())
-}
-
-/// Setup a basic spritebatch for sprites that will not move.
-fn configure_base_batch(
-    ctx: &mut Context,
-    config: &Config,
-    batch: &mut graphics::spritebatch::SpriteBatch,
-    world: &World,
-) {
-    // Find correct cell with for scaling grid.
-    let (window_width, _) = graphics::get_drawable_size(ctx);
-    let cell_size = config.scaling * window_width / GRID_WIDTH;
-
-    // Add all tiles to spritebatch, check neighbors to get correct variant and rotation.
-    for i in 0..GRID_WIDTH {
-        for j in 0..GRID_HEIGTH {
-            let curr_cell = world.tile(Position::new(i as i32, j as i32)).unwrap();
-            let north_cell = world.tile(Position::new(i as i32, j as i32 - 1));
-            let east_cell = world.tile(Position::new(i as i32 + 1, j as i32));
-            let south_cell = world.tile(Position::new(i as i32, j as i32 + 1));
-            let west_cell = world.tile(Position::new(i as i32 - 1, j as i32));
-
-            // Tile size is handled a bit oddly in the game engine.
-            let tile_size = 65. / 256.;
-            let tile_offset = 64. / 256.;
-
-            // Check neighbors to determine which actual sprite should be used.
-            let src = match (curr_cell, north_cell, east_cell, south_cell, west_cell) {
-                (Tile::Water, _, _, _, _) => graphics::Rect::new(0., 0., tile_size, tile_size),
-                (
-                    Tile::Land,
-                    Some(Tile::Water),
-                    Some(Tile::Water),
-                    Some(Tile::Land),
-                    Some(Tile::Land),
-                ) => graphics::Rect::new(0.0, tile_offset, tile_size, tile_size),
-                (
-                    Tile::Land,
-                    Some(Tile::Land),
-                    Some(Tile::Water),
-                    Some(Tile::Water),
-                    Some(Tile::Land),
-                ) => graphics::Rect::new(1. * tile_offset, tile_offset, tile_size, tile_size),
-                (
-                    Tile::Land,
-                    Some(Tile::Land),
-                    Some(Tile::Land),
-                    Some(Tile::Water),
-                    Some(Tile::Water),
-                ) => graphics::Rect::new(2. * tile_offset, tile_offset, tile_size, tile_size),
-                (
-                    Tile::Land,
-                    Some(Tile::Water),
-                    Some(Tile::Land),
-                    Some(Tile::Land),
-                    Some(Tile::Water),
-                ) => graphics::Rect::new(3. * tile_offset, tile_offset, tile_size, tile_size),
-                (Tile::Land, _, _, _, _) => {
-                    graphics::Rect::new(tile_offset, 0., tile_size, tile_size)
-                }
-            };
-
-            let dest = graphics::Point2::new((i * cell_size) as f32, (j * cell_size) as f32);
-            let param = graphics::DrawParam {
-                src,
-                dest,
-                scale: graphics::Point2::new(cell_size as f32 / 64., cell_size as f32 / 64.),
-                ..Default::default()
-            };
-            batch.add(param);
-        }
-    }
 }
 
 /// Handles and holds all game information.
@@ -131,9 +57,9 @@ pub enum GameState {
     Playing {
         config: Config,
         frames: usize,
-        batch: graphics::spritebatch::SpriteBatch,
+        sprite_drawer: SpriteDrawer,
         world: World,
-        drawer: Option<PathDrawer>,
+        route_builder: Option<RouteBuilder>,
         color_selector: ColorSelector,
     },
 }
@@ -142,19 +68,18 @@ impl GameState {
     /// Creates a new game state in Play mode.
     pub fn new(ctx: &mut Context, config: Config) -> GameResult<Self> {
         // Load game world from file.
-        let world = load_world(ctx);
+        let world = load_world(ctx, &config);
 
         // Load spritebatch for effective drawing of sprites.
         let image = graphics::Image::new(ctx, TILESET_PATH)?;
-        let mut batch = graphics::spritebatch::SpriteBatch::new(image);
-        configure_base_batch(ctx, &config, &mut batch, &world);
+        let sprite_drawer = SpriteDrawer::new(image);
 
         let state = GameState::Playing {
             config,
             frames: 0,
-            batch,
+            sprite_drawer,
             world,
-            drawer: None,
+            route_builder: None,
             color_selector: ColorSelector::new(),
         };
         Ok(state)
@@ -164,6 +89,10 @@ impl GameState {
 impl event::EventHandler for GameState {
     /// Updates the game state.
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
+        match self {
+            // Clear sprite drawer to remove old sprites.
+            GameState::Playing { sprite_drawer, .. } => sprite_drawer.clear(),
+        };
         Ok(())
     }
 
@@ -177,17 +106,16 @@ impl event::EventHandler for GameState {
     ) {
         match self {
             GameState::Playing {
-                drawer,
+                route_builder,
                 config,
                 world,
                 color_selector,
                 ..
             } => {
                 let (window_width, _) = graphics::get_drawable_size(ctx);
-                let cell_size = (config.scaling * window_width / GRID_WIDTH) as i32;
+                let cell_size = (config.scaling * window_width / config.grid_width) as i32;
 
                 // Check that we start to draw from a port.
-                // TODO: Check that this is allowed by further by the game rules.
                 let mouse_position =
                     Position::new(config.scaling as i32 * x, config.scaling as i32 * y);
                 let mouse_position_scaled = Position::new(
@@ -197,8 +125,9 @@ impl event::EventHandler for GameState {
 
                 // Check if some mouse button on some color.
                 let num_colors = color_selector.colors().count() as u32;
-                let color_selector_x_offset = (GRID_WIDTH / 2 - num_colors + 1) as i32 * cell_size;
-                let color_selector_y_offset = (GRID_HEIGTH + 1) as i32 * cell_size;
+                let color_selector_x_offset =
+                    (config.grid_width / 2 - num_colors + 1) as i32 * cell_size;
+                let color_selector_y_offset = (config.grid_height + 1) as i32 * cell_size;
 
                 for index in 0..num_colors {
                     let color_position = Position::new(
@@ -216,13 +145,15 @@ impl event::EventHandler for GameState {
                     }
                 }
 
-                *drawer = match drawer {
+                *route_builder = match route_builder {
                     // Drawing already in progress, stop drawing.
-                    Some(d) => {
+                    Some(rb) => {
                         if world.port(mouse_position_scaled).is_some() {
                             // Add an actual route here if, ensure we have a color selected.
                             if let Some(color) = color_selector.selected() {
-                                world.add_route(color, *d.from(), *d.to())
+                                if let Some(path) = rb.path() {
+                                    world.add_route(color, *rb.from(), *rb.to(), path.clone())
+                                }
                             }
                         }
                         None
@@ -232,7 +163,7 @@ impl event::EventHandler for GameState {
                         if world.port(mouse_position_scaled).is_some()
                             && color_selector.selected().is_some()
                         {
-                            Some(PathDrawer::new(Position::new(
+                            Some(RouteBuilder::new(Position::new(
                                 config.scaling as i32 * x / cell_size,
                                 config.scaling as i32 * y / cell_size,
                             )))
@@ -257,15 +188,15 @@ impl event::EventHandler for GameState {
     ) {
         match self {
             GameState::Playing {
-                drawer,
+                route_builder,
                 config,
                 world,
                 ..
             } => {
                 let (window_width, _) = graphics::get_drawable_size(ctx);
-                let cell_size = (config.scaling * window_width / GRID_WIDTH) as i32;
-                if let Some(d) = drawer {
-                    d.update(
+                let cell_size = (config.scaling * window_width / config.grid_width) as i32;
+                if let Some(rb) = route_builder {
+                    rb.update(
                         Position::new(
                             config.scaling as i32 * x / cell_size,
                             config.scaling as i32 * y / cell_size,
@@ -284,147 +215,49 @@ impl event::EventHandler for GameState {
                 frames,
                 config,
                 world,
-                batch,
-                drawer,
+                sprite_drawer,
+                route_builder,
                 color_selector,
             } => {
                 if *frames % 100 == 0 {
                     println!("FPS: {:.1}", timer::get_fps(ctx));
                 }
                 graphics::clear(ctx);
-                graphics::set_background_color(ctx, graphics::Color::from((243, 243, 236)));
-                // Draw base batch.
-                graphics::draw_ex(ctx, batch, graphics::DrawParam::default())?;
 
-                // Create an upper spritebatch for effective drawing of sprites.
-                let image = graphics::Image::new(ctx, TILESET_PATH)?;
-                let mut upper_batch = graphics::spritebatch::SpriteBatch::new(image);
-
-                // Find correct cell with for scaling grid.
-                let (window_width, _) = graphics::get_drawable_size(ctx);
-                let cell_size = (config.scaling * window_width / GRID_WIDTH) as i32;
-
-                // Tile size is handled a bit oddly in the game engine.
-                let tile_size = 65. / 256.;
-                let tile_offset = 64. / 256.;
-
-                // Draw all ports.
-                for (position, _) in world.ports() {
-                    let param = graphics::DrawParam {
-                        src: graphics::Rect::new(0., 2. * tile_offset, tile_size, tile_size),
-                        dest: graphics::Point2::new(
-                            (position.coords.x * cell_size) as f32,
-                            (position.coords.y * cell_size) as f32,
-                        ),
-                        scale: graphics::Point2::new(
-                            cell_size as f32 / 64.,
-                            cell_size as f32 / 64.,
-                        ),
-                        ..Default::default()
-                    };
-                    upper_batch.add(param);
-                }
-
-                // Check if we have a path and draw upon tile.
-                if let Some(d) = drawer {
-                    let (r, g, b) = color_selector
-                        .selected()
-                        .expect("Drawing without color")
-                        .rgb();
-                    if let Some((_, path)) = d.path() {
-                        for position in path {
-                            let param = graphics::DrawParam {
-                                src: graphics::Rect::new(
-                                    tile_offset,
-                                    2. * tile_offset,
-                                    tile_size,
-                                    tile_size,
-                                ),
-                                dest: graphics::Point2::new(
-                                    (position.coords.x * cell_size) as f32,
-                                    (position.coords.y * cell_size) as f32,
-                                ),
-                                scale: graphics::Point2::new(
-                                    cell_size as f32 / 64.,
-                                    cell_size as f32 / 64.,
-                                ),
-                                color: Some(graphics::Color::from_rgb(r, g, b)),
-                                ..Default::default()
-                            };
-                            upper_batch.add(param);
-                        }
-                    }
-                }
-
-                // Draw color selector
-                // TODO: Make something more elegant which does not assume the number of colors.
-                let num_colors = color_selector.colors().count() as u32;
-                let color_selector_x_offset =
-                    ((GRID_WIDTH / 2 - num_colors + 1) * cell_size as u32) as f32;
-                let color_selector_y_offset = (GRID_HEIGTH as f32 + 1.) * cell_size as f32;
-
-                for (index, color) in color_selector.colors().enumerate() {
-                    let (r, g, b) = color.rgb();
-
-                    // Add little scale factor to indicate do the user which color is selected.
-                    let scale_factor = match color_selector.selected() {
-                         Some(selected_color) if selected_color == *color => 1.3,
-                         _ => 1.,
-                    };
-                    let param = graphics::DrawParam {
-                        src: graphics::Rect::new(
-                            2. * tile_size,
-                            2. * tile_size,
-                            tile_size,
-                            tile_size,
-                        ),
-                        dest: graphics::Point2::new(
-                            color_selector_x_offset + (2 * index as i32 * cell_size) as f32,
-                            (color_selector_y_offset) as f32,
-                        ),
-                        scale: graphics::Point2::new(
-                            scale_factor * cell_size as f32 / 64.,
-                            scale_factor * cell_size as f32 / 64.,
-                        ),
-                        offset: graphics::Point2::new(0.5, 0.5),
-                        color: Some(graphics::Color::from_rgb(r, g, b)),
-                        ..Default::default()
-                    };
-                    upper_batch.add(param);
+                // Draw all base tiles.
+                for tile in world.tiles() {
+                    sprite_drawer.draw_item(ctx, config, tile, world);
                 }
 
                 // Draw all routes.
                 for (color, route) in world.routes() {
-                    let (r, g, b) = color.rgb();
-                    for window in route.ports().windows(2) {
-                        if let Some((_, path)) = world.route(window[0], window[1]) {
-                            for position in path {
-                                let param = graphics::DrawParam {
-                                    src: graphics::Rect::new(
-                                        tile_offset,
-                                        2. * tile_offset,
-                                        tile_size,
-                                        tile_size,
-                                    ),
-                                    dest: graphics::Point2::new(
-                                        (position.coords.x * cell_size) as f32,
-                                        (position.coords.y * cell_size) as f32,
-                                    ),
-                                    scale: graphics::Point2::new(
-                                        cell_size as f32 / 64.,
-                                        cell_size as f32 / 64.,
-                                    ),
-                                    color: Some(graphics::Color::from_rgb(r, g, b)),
-                                    ..Default::default()
-                                };
-                                upper_batch.add(param);
-                            }
+                    for waypoint in route.waypoints() {
+                        sprite_drawer.draw_item(ctx, config, waypoint, color);
+                    }
+                }
+
+                // Draw route (id any) currently being created.
+                if let Some(builder) = route_builder {
+                    if let Some(waypoints) = builder.path() {
+                        let color = color_selector.selected().unwrap();
+                        for waypoint in waypoints {
+                            sprite_drawer.draw_item(ctx, config, waypoint, &color);
                         }
                     }
                 }
 
-                graphics::draw_ex(ctx, &upper_batch, graphics::DrawParam::default())?;
-                graphics::present(ctx);
+                // Draw all ports.
+                for port in world.ports() {
+                    sprite_drawer.draw_item(ctx, config, port, world);
+                }
+
+                // Draw color selector.
+                for color in color_selector.colors() {
+                    sprite_drawer.draw_item(ctx, config, color, &(config, &color_selector));
+                }
+
+                // Draw to screen.
+                sprite_drawer.paint(ctx, config)?;
 
                 *frames += 1;
                 // And yield the timeslice

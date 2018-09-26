@@ -1,3 +1,8 @@
+use ggez::graphics::{Color as ggezColor, DrawParam, Point2, Rect};
+
+use config::Config;
+use draw::Drawable;
+
 /// A drawable color of the game's color schme.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Color {
@@ -10,7 +15,7 @@ pub enum Color {
 
 impl Color {
     /// Return a tuple of the color's components in the RGB scheme.
-    pub fn rgb(&self) -> (u8, u8, u8) {
+    pub fn rgb(self) -> (u8, u8, u8) {
         match self {
             Color::Blue => (72, 133, 237),
             Color::Green => (60, 186, 88),
@@ -29,6 +34,41 @@ impl Color {
             Color::Red,
             Color::Yellow,
         ]
+    }
+}
+
+impl<'a> Drawable<'a> for Color {
+    type Data = (&'a Config, &'a ColorSelector);
+
+    fn draw(&self, data: &(&Config, &ColorSelector)) -> DrawParam {
+        let (config, selector) = data;
+        let index = selector.find(*self).unwrap();
+        let (r, g, b) = self.rgb();
+
+        // Add little scale factor to indicate do the user which color is selected.
+        let scale_factor = match selector.selected() {
+            Some(selected_color) if selected_color == *self => 1.3,
+            _ => 1.,
+        };
+        let num_colors = selector.colors().count() as u32;
+        let color_selector_x_offset = (config.grid_width / 2 - num_colors + 1) as f32;
+        let color_selector_y_offset = (config.grid_height as f32 + 1.) as f32;
+        DrawParam {
+            src: Rect::new(
+                2. * Self::TILE_SIZE,
+                2. * Self::TILE_SIZE,
+                Self::TILE_SIZE,
+                Self::TILE_SIZE,
+            ),
+            dest: Point2::new(
+                color_selector_x_offset + 2. * index as f32 as f32,
+                color_selector_y_offset,
+            ),
+            scale: Point2::new(scale_factor, scale_factor),
+            offset: Point2::new(0.5, 0.5),
+            color: Some(ggezColor::from_rgb(r, g, b)),
+            ..Default::default()
+        }
     }
 }
 
@@ -64,6 +104,11 @@ impl ColorSelector {
             Some(_) => Some(index),
             None => Some(index),
         };
+    }
+
+    /// Returns the index of the given color.
+    pub fn find(&self, color: Color) -> Option<usize> {
+        self.colors.iter().position(|c| *c == color)
     }
 
     /// Returns an iterator over all colors available in this selector.

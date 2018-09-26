@@ -9,9 +9,10 @@ use std::{cmp::Ordering, env, path::PathBuf};
 
 pub mod color;
 pub mod config;
+pub mod draw;
 mod gamestate;
-pub mod path;
 pub mod port;
+pub mod route;
 pub mod tile;
 pub mod world;
 
