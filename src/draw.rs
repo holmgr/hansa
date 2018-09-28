@@ -60,6 +60,11 @@ impl SpriteDrawer {
         // Scale to grid coordinates only if needed.
         if grid_scaling {
             param.dest = Point2::new(param.dest.x * cell_size, param.dest.y * cell_size);
+        } else {
+            param.dest = Point2::new(
+                param.dest.x * config.scaling as f32,
+                param.dest.y * config.scaling as f32,
+            );
         }
         self.0.add(param);
     }
