@@ -1,6 +1,7 @@
 use color::Color;
 use port::Port;
 use route::{find_path, reachable, Route, Waypoint};
+use ship::Shipyard;
 use std::{collections::HashMap, iter::FromIterator};
 use tile::Tile;
 use Position;
@@ -11,6 +12,7 @@ pub struct World {
     map: Vec<Tile>,
     ports: Vec<Port>,
     routes: HashMap<Color, Route>,
+    shipyard: Shipyard,
 }
 
 impl World {
@@ -24,6 +26,7 @@ impl World {
             map: Vec::from_iter(tiles),
             ports: Vec::from_iter(ports),
             routes: HashMap::new(),
+            shipyard: Shipyard::new(),
         }
     }
 
@@ -40,6 +43,11 @@ impl World {
     /// Returns a iterator over all routes.
     pub fn routes(&self) -> impl Iterator<Item = (&Color, &Route)> {
         self.routes.iter()
+    }
+
+    /// Returns a mutable reference to the shipyard.
+    pub fn shipyard_mut(&mut self) -> &mut Shipyard {
+        &mut self.shipyard
     }
 
     /// Creates a new route (if non exists) and adds a new link between start and goal.
@@ -84,6 +92,7 @@ impl Default for World {
             map: vec![],
             ports: vec![],
             routes: HashMap::new(),
+            shipyard: Shipyard::new(),
         }
     }
 }

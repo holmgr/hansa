@@ -1,13 +1,17 @@
 use ggez::{
-    event, graphics, timer, {Context, GameResult},
+    event, graphics, mouse, timer, {Context, GameResult},
 };
-use std::io::{BufRead, BufReader, Read};
+use std::{
+    io::{BufRead, BufReader, Read},
+    mem,
+};
 
 use color::ColorSelector;
 use config::Config;
 use draw::SpriteDrawer;
 use port::Port;
 use route::RouteBuilder;
+use ship::ShipBuilder;
 use tile::{Tile, TileKind};
 use world::World;
 use Position;
@@ -60,6 +64,7 @@ pub enum GameState {
         sprite_drawer: SpriteDrawer,
         world: World,
         route_builder: Option<RouteBuilder>,
+        ship_builder: Option<ShipBuilder>,
         color_selector: ColorSelector,
     },
 }
@@ -80,6 +85,7 @@ impl GameState {
             sprite_drawer,
             world,
             route_builder: None,
+            ship_builder: None,
             color_selector: ColorSelector::new(),
         };
         Ok(state)
@@ -107,6 +113,7 @@ impl event::EventHandler for GameState {
         match self {
             GameState::Playing {
                 route_builder,
+                ship_builder,
                 config,
                 world,
                 color_selector,
@@ -144,6 +151,41 @@ impl event::EventHandler for GameState {
                         println!("Toggling color: {:?}", color_selector.selected());
                     }
                 }
+
+                // Not the prettiest code...
+                let mut swap_builder = None;
+                mem::swap(ship_builder, &mut swap_builder);
+
+                *ship_builder = match swap_builder {
+                    Some(sb) => {
+                        // Return ship to shipyard.
+                        world.shipyard_mut().add_ship(sb.cancel());
+                        None
+                    }
+                    _ => {
+                        // Check if some mouse button on shipyard.
+                        // TODO: Duplicated position logic.
+                        let shipyard_x_offset = (config.grid_width as i32 / 2) * cell_size;
+                        let shipyard_y_offset = (config.grid_height as i32 + 3) * cell_size;
+
+                        let shipyard_position = Position::new(shipyard_x_offset, shipyard_y_offset);
+                        // Try to fetch ship if the player have any available.
+                        if let Some(ship) = world.shipyard_mut().get_available_ship() {
+                            if (shipyard_position.coords.x - mouse_position.coords.x).pow(2)
+                                + (shipyard_position.coords.y - mouse_position.coords.y).pow(2)
+                                < cell_size.pow(2)
+                            {
+                                println!("Creating ship builder");
+                                Some(ShipBuilder::new(ship))
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
+                };
+                println!("{:?}", ship_builder);
 
                 *route_builder = match route_builder {
                     // Drawing already in progress, stop drawing.
@@ -217,6 +259,7 @@ impl event::EventHandler for GameState {
                 world,
                 sprite_drawer,
                 route_builder,
+                ship_builder,
                 color_selector,
             } => {
                 if *frames % 100 == 0 {
@@ -256,6 +299,16 @@ impl event::EventHandler for GameState {
                 // Draw color selector.
                 for color in color_selector.colors() {
                     sprite_drawer.draw_item(ctx, config, color, &(config, &color_selector), true);
+                }
+
+                // Draw shipyard.
+                sprite_drawer.draw_item(ctx, config, world.shipyard_mut(), config, true);
+
+                // Draw ship icon under mouse if being held by player.
+                if let Some(sb) = ship_builder {
+                    let mouse_position =
+                        mouse::get_position(ctx).expect("Could not retrive mouse position");
+                    sprite_drawer.draw_item(ctx, config, sb, &mouse_position, false);
                 }
 
                 // Draw to screen.

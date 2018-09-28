@@ -13,6 +13,7 @@ pub mod draw;
 mod gamestate;
 pub mod port;
 pub mod route;
+pub mod ship;
 pub mod tile;
 pub mod world;
 
