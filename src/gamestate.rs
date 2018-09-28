@@ -222,18 +222,19 @@ impl event::EventHandler for GameState {
                 if *frames % 100 == 0 {
                     println!("FPS: {:.1}", timer::get_fps(ctx));
                 }
+
                 graphics::clear(ctx);
                 sprite_drawer.clear();
 
                 // Draw all base tiles.
                 for tile in world.tiles() {
-                    sprite_drawer.draw_item(ctx, config, tile, world);
+                    sprite_drawer.draw_item(ctx, config, tile, world, true);
                 }
 
                 // Draw all routes.
                 for (color, route) in world.routes() {
                     for waypoint in route.waypoints() {
-                        sprite_drawer.draw_item(ctx, config, waypoint, color);
+                        sprite_drawer.draw_item(ctx, config, waypoint, color, true);
                     }
                 }
 
@@ -242,19 +243,19 @@ impl event::EventHandler for GameState {
                     if let Some(waypoints) = builder.path() {
                         let color = color_selector.selected().unwrap();
                         for waypoint in waypoints {
-                            sprite_drawer.draw_item(ctx, config, waypoint, &color);
+                            sprite_drawer.draw_item(ctx, config, waypoint, &color, true);
                         }
                     }
                 }
 
                 // Draw all ports.
                 for port in world.ports() {
-                    sprite_drawer.draw_item(ctx, config, port, world);
+                    sprite_drawer.draw_item(ctx, config, port, world, true);
                 }
 
                 // Draw color selector.
                 for color in color_selector.colors() {
-                    sprite_drawer.draw_item(ctx, config, color, &(config, &color_selector));
+                    sprite_drawer.draw_item(ctx, config, color, &(config, &color_selector), true);
                 }
 
                 // Draw to screen.

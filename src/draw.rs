@@ -43,6 +43,7 @@ impl SpriteDrawer {
         config: &Config,
         item: &T,
         data: &'a T::Data,
+        grid_scaling: bool,
     ) {
         let mut param = item.draw(data);
 
@@ -55,7 +56,11 @@ impl SpriteDrawer {
             param.scale.x * cell_size / 64.,
             param.scale.y * cell_size / 64.,
         );
-        param.dest = Point2::new(param.dest.x * cell_size, param.dest.y * cell_size);
+
+        // Scale to grid coordinates only if needed.
+        if grid_scaling {
+            param.dest = Point2::new(param.dest.x * cell_size, param.dest.y * cell_size);
+        }
         self.0.add(param);
     }
 
