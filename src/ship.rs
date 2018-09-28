@@ -40,6 +40,11 @@ impl Shipyard {
         self.ships.len()
     }
 
+    /// Return if there are any ships available.
+    pub fn is_available(&self) -> bool {
+        !self.ships.is_empty()
+    }
+
     /// Adds a new ship to the shipyard.
     pub fn add_ship(&mut self, ship: Ship) {
         self.ships.push(ship);

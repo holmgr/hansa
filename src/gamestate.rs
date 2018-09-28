@@ -113,10 +113,10 @@ impl event::EventHandler for GameState {
         match self {
             GameState::Playing {
                 route_builder,
-                ship_builder,
                 config,
                 world,
                 color_selector,
+                ship_builder,
                 ..
             } => {
                 let (window_width, _) = graphics::get_drawable_size(ctx);
@@ -169,14 +169,16 @@ impl event::EventHandler for GameState {
                         let shipyard_y_offset = (config.grid_height as i32 + 3) * cell_size;
 
                         let shipyard_position = Position::new(shipyard_x_offset, shipyard_y_offset);
-                        // Try to fetch ship if the player have any available.
-                        if let Some(ship) = world.shipyard_mut().get_available_ship() {
+
+                        // Check if player has any ship available.
+                        if world.shipyard_mut().is_available() {
                             if (shipyard_position.coords.x - mouse_position.coords.x).pow(2)
                                 + (shipyard_position.coords.y - mouse_position.coords.y).pow(2)
                                 < cell_size.pow(2)
                             {
-                                println!("Creating ship builder");
-                                Some(ShipBuilder::new(ship))
+                                Some(ShipBuilder::new(
+                                    world.shipyard_mut().get_available_ship().unwrap(),
+                                ))
                             } else {
                                 None
                             }
