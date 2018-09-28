@@ -223,6 +223,7 @@ impl event::EventHandler for GameState {
                     println!("FPS: {:.1}", timer::get_fps(ctx));
                 }
                 graphics::clear(ctx);
+                sprite_drawer.clear();
 
                 // Draw all base tiles.
                 for tile in world.tiles() {

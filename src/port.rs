@@ -4,7 +4,7 @@ use draw::Drawable;
 use world::World;
 use Position;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Port {
     position: Position,
 }

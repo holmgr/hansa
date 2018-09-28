@@ -95,7 +95,7 @@ pub fn find_path(
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 /// A waypoint is a drawable position.
 pub struct Waypoint(Position);
 

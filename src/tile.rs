@@ -5,14 +5,14 @@ use world::World;
 use Position;
 
 /// Sepecific Tile type.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TileKind {
     Land,
     Water,
 }
 
 /// A map tile of a specific type.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Tile {
     position: Position,
     kind: TileKind,

@@ -1,20 +1,15 @@
 use ggez::{
     graphics::{
-        clear, draw_ex, get_drawable_size, present, set_background_color,
-        spritebatch::{SpriteBatch, SpriteIdx},
+        clear, draw_ex, get_drawable_size, present, set_background_color, spritebatch::SpriteBatch,
         Color, DrawParam, Image, Point2,
     },
     Context, GameResult,
-};
-use std::{
-    collections::hash_map::{DefaultHasher, HashMap},
-    hash::{Hash, Hasher},
 };
 
 use config::Config;
 
 /// A drawable type.
-pub trait Drawable<'a>: Hash {
+pub trait Drawable<'a> {
     // TODO: Move magic constant here.
     const TILE_SIZE: f32 = 65. / 256.;
     const TILE_OFFSET: f32 = 64. / 256.;
@@ -28,29 +23,20 @@ pub trait Drawable<'a>: Hash {
 
 /// A cached drawer which keeps track of and draws indiviual drawawble items,
 /// as a single call to the GPU.
-pub struct SpriteDrawer {
-    sprites: HashMap<u64, SpriteIdx>,
-    batch: SpriteBatch,
-    hasher: DefaultHasher,
-}
+pub struct SpriteDrawer(SpriteBatch);
 
 impl SpriteDrawer {
     /// Creates a new SpriteDrawer for optimized drawing.
     pub fn new(image: Image) -> Self {
-        SpriteDrawer {
-            sprites: HashMap::new(),
-            batch: SpriteBatch::new(image),
-            hasher: DefaultHasher::new(),
-        }
+        SpriteDrawer(SpriteBatch::new(image))
     }
 
     /// Clears the sprite drawer of all sprites.
     pub fn clear(&mut self) {
-        self.batch.clear();
-        self.sprites.clear();
+        self.0.clear();
     }
 
-    /// Draws the given item, uses cache if already drawn.
+    /// Draws the given item.
     pub fn draw_item<'a, T: Drawable<'a>>(
         &mut self,
         ctx: &mut Context,
@@ -58,8 +44,6 @@ impl SpriteDrawer {
         item: &T,
         data: &'a T::Data,
     ) {
-        item.hash(&mut self.hasher);
-        let id = self.hasher.finish();
         let mut param = item.draw(data);
 
         // Scale the param to so it matches grid size screen.
@@ -72,20 +56,7 @@ impl SpriteDrawer {
             param.scale.y * cell_size / 64.,
         );
         param.dest = Point2::new(param.dest.x * cell_size, param.dest.y * cell_size);
-
-        let idx = match self.sprites.get(&id) {
-            Some(idx) => {
-                self.batch
-                    .set(*idx, param)
-                    .unwrap_or_else(|_| panic!("Failed to draw item {:?} on batch", idx));
-                *idx
-            }
-            None => self.batch.add(param),
-        };
-        self.sprites.insert(id, idx);
-
-        // Clear hasher internal state.
-        self.hasher = DefaultHasher::new();
+        self.0.add(param);
     }
 
     /// Draws all sprites in the sprite drawer on the screen.
@@ -97,7 +68,7 @@ impl SpriteDrawer {
         set_background_color(ctx, Color::from((243, 243, 236)));
         draw_ex(
             ctx,
-            &self.batch,
+            &self.0,
             DrawParam {
                 ..Default::default()
             },
