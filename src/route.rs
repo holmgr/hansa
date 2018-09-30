@@ -133,18 +133,46 @@ impl From<Waypoint> for Position {
 
 /// Represents a trading route which exists between a series of ports.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Route(Vec<(Position, Vec<Waypoint>)>);
+pub struct Route {
+    ships: Vec<Ship>,
+    paths: Vec<(Position, Vec<Waypoint>)>
+}
 
 impl Route {
     /// Creates a new empty route.
     pub fn new() -> Route {
-        Route(vec![])
+        Route {
+            ships: vec![],
+            paths: vec![]
+        }
     }
 
     /// Adds the given ship to this route.
     pub fn add_ship(&mut self, ship: Ship) {
         // TODO: Finish implementation :)
         println!("Added ship to the route");
+        self.ships.push(ship);
+    }
+
+    /// Returns an iterator over all ships on this route.
+    pub fn ships(&self) -> impl Iterator<Item = &Ship> {
+        self.ships.iter()
+    }
+
+    /// Returns a mutable iterator over all ships on this route.
+    pub fn ships_mut(&mut self) -> impl Iterator<Item = &mut Ship> {
+        self.ships.iter_mut()
+    }
+
+    /// Returns the next waypoint after the given one, return None if last.
+    pub fn next_waypoint(&self, waypoint: Waypoint) -> Option<Waypoint> {
+        self.paths
+            .iter()
+            .flat_map(|(_, waypoints)| waypoints.iter())
+            .skip_while(|w| **w != waypoint)
+            .skip(1)
+            .next()
+            .map(|w| w.clone())
     }
 
     /// Adds a new link to this route, inserting it after start first occures.
@@ -157,35 +185,35 @@ impl Route {
         path: Vec<Waypoint>,
     ) {
         // Find the index to insert a path to the new end node.
-        let index = self.0.iter().position(|(p, _)| *p == start).unwrap_or(0);
+        let index = self.paths.iter().position(|(p, _)| *p == start).unwrap_or(0);
         // Add empty new path.
-        self.0.insert(index, (start, path));
+        self.paths.insert(index, (start, path));
 
         // If a path already existed path from start to something else make
         // sure that, our node node leads to that old node.
-        if let Some((port, _)) = self.0.get_mut(index + 1) {
+        if let Some((port, _)) = self.paths.get_mut(index + 1) {
             *port = end;
         }
 
         // Rebuild routes after.
-        let new_waypoints = (index..self.0.len() - 1)
+        let new_waypoints = (index..self.paths.len() - 1)
             .map(|i| {
-                let (curr_port, _) = self.0[i];
-                let (next_port, _) = self.0[i + 1];
+                let (curr_port, _) = self.paths[i];
+                let (next_port, _) = self.paths[i + 1];
                 let (_, route) =
                     find_path(map, ports, curr_port, next_port).expect("Did not find valid route");
                 route.into_iter().map(Waypoint::from).collect::<Vec<_>>()
             }).collect::<Vec<_>>();
 
         for (i, waypoints) in new_waypoints.into_iter().enumerate() {
-            let (_, old_waypoints) = &mut self.0[index + i];
+            let (_, old_waypoints) = &mut self.paths[index + i];
             *old_waypoints = waypoints;
         }
     }
 
     /// Returns a vector with all waypoints on this route.
     pub fn waypoints(&self) -> Vec<&Waypoint> {
-        self.0
+        self.paths
             .iter()
             .flat_map(|(_, waypoints)| waypoints.iter())
             .collect::<Vec<_>>()
@@ -193,7 +221,7 @@ impl Route {
 
     /// Check if the given waypoint is contained on this route.
     pub fn contains(&self, waypoint: &Waypoint) -> bool {
-        self.0
+        self.paths
             .iter()
             .flat_map(|(_, waypoints)| waypoints.iter())
             .any(|w| w == waypoint)

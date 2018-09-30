@@ -16,6 +16,7 @@ pub mod route;
 pub mod ship;
 pub mod tile;
 pub mod world;
+pub mod update;
 
 /// General position type.
 pub type Position = na::Point2<i32>;

@@ -15,6 +15,7 @@ use ship::ShipBuilder;
 use tile::{Tile, TileKind};
 use world::World;
 use Position;
+use update::Updatable;
 
 const TILESET_PATH: &str = "/tileset.png";
 const MAP_PATH: &str = "/map.ppm";
@@ -94,10 +95,25 @@ impl GameState {
 
 impl event::EventHandler for GameState {
     /// Updates the game state.
-    fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
+    fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         match self {
             // Clear sprite drawer to remove old sprites.
-            GameState::Playing { sprite_drawer, .. } => sprite_drawer.clear(),
+            GameState::Playing { world, .. } => {
+                // Update all ships.
+                for (_, route) in world.routes_mut() {
+                    let next_waypoints = route.ships().map(|s| s.position()).map(|w| route.next_waypoint(w).expect("No next waypoint")).collect::<Vec<_>>();
+                    next_waypoints.into_iter().zip(route.ships_mut()).for_each(|(w, s)| {
+                        s.update(ctx, &w);
+                    });
+                    /*
+                    for ship in route.ships_mut() {
+                        // TODO: Must handle waypoints ending, and returning ships back.
+                        let next_waypoint = route.next_waypoint(ship.position()).expect("No next waypoint");
+                        ship.update(ctx, &next_waypoint)
+                    }
+                    */
+                }
+            },
         };
         Ok(())
     }
@@ -160,8 +176,8 @@ impl event::EventHandler for GameState {
                     Some(sb) => {
                         // Try to add ship to route (if any) on the mouse position.
                         // If it fails (and returns a ship), place it back on shipyard.
-                        if let Some(ship) = sb.try_place(mouse_position_scaled, world) {
-                            world.shipyard_mut().add_ship(ship);
+                        if let Some(builder) = sb.try_place(mouse_position_scaled, world) {
+                            world.shipyard_mut().add_builder(builder);
                         }
                         None
                     }
@@ -172,19 +188,13 @@ impl event::EventHandler for GameState {
                         let shipyard_y_offset = (config.grid_height as i32 + 3) * cell_size;
 
                         let shipyard_position = Position::new(shipyard_x_offset, shipyard_y_offset);
-
                         // Check if player has any ship available.
-                        if world.shipyard_mut().is_available() {
-                            if (shipyard_position.coords.x - mouse_position.coords.x).pow(2)
-                                + (shipyard_position.coords.y - mouse_position.coords.y).pow(2)
-                                < cell_size.pow(2)
-                            {
-                                Some(ShipBuilder::new(
-                                    world.shipyard_mut().get_available_ship().unwrap(),
-                                ))
-                            } else {
-                                None
-                            }
+
+                        if (shipyard_position.coords.x - mouse_position.coords.x).pow(2)
+                            + (shipyard_position.coords.y - mouse_position.coords.y).pow(2)
+                            < cell_size.pow(2)
+                        {
+                            world.shipyard_mut().build()
                         } else {
                             None
                         }
@@ -282,6 +292,15 @@ impl event::EventHandler for GameState {
                 for (color, route) in world.routes() {
                     for waypoint in route.waypoints() {
                         sprite_drawer.draw_item(ctx, config, waypoint, color, true);
+                    }
+                }
+
+                // Draw all ships.
+                for (_, route) in world.routes() {
+                    for ship in route.ships() {
+                        // TODO: Must handle waypoints ending, and returning ships back.
+                        let next_waypoint = route.next_waypoint(ship.position()).expect("No next waypoint");
+                        sprite_drawer.draw_item(ctx, config, ship, &next_waypoint, true);
                     }
                 }
 
