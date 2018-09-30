@@ -158,8 +158,11 @@ impl event::EventHandler for GameState {
 
                 *ship_builder = match swap_builder {
                     Some(sb) => {
-                        // Return ship to shipyard.
-                        world.shipyard_mut().add_ship(sb.cancel());
+                        // Try to add ship to route (if any) on the mouse position.
+                        // If it fails (and returns a ship), place it back on shipyard.
+                        if let Some(ship) = sb.try_place(mouse_position_scaled, world) {
+                            world.shipyard_mut().add_ship(ship);
+                        }
                         None
                     }
                     _ => {
@@ -187,7 +190,6 @@ impl event::EventHandler for GameState {
                         }
                     }
                 };
-                println!("{:?}", ship_builder);
 
                 *route_builder = match route_builder {
                     // Drawing already in progress, stop drawing.

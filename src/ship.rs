@@ -2,6 +2,7 @@ use ggez::graphics::{Color as ggezColor, DrawParam, Point2, Rect};
 
 use config::Config;
 use draw::Drawable;
+use route::Waypoint;
 use world::World;
 use Position;
 
@@ -84,12 +85,20 @@ impl ShipBuilder {
         ShipBuilder { ship }
     }
 
-    /// Attempts to place a ship at the given position, consuming the ship builder
-    /// if it fails.
-    pub fn place(self, position: Position, world: &World) -> Option<Ship> {
+    /// Attempts to place a ship at the given position, consuming the ship builder.
+    /// Returns a ship when failing to place it.
+    pub fn try_place(self, position: Position, world: &mut World) -> Option<Ship> {
         // TODO: Implement placement on the given possition if it exists a
         // valid path there.
-        None
+
+        let waypoint = Waypoint::from(position);
+        if let Some((_, route)) = world.routes_mut().find(|(_, r)| r.contains(&waypoint)) {
+            println!("Placed ship on route!");
+            route.add_ship(self.ship);
+            None
+        } else {
+            Some(self.ship)
+        }
     }
 
     /// Cancels the ship placement, consuming the builder and returning the ship.

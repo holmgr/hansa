@@ -45,6 +45,11 @@ impl World {
         self.routes.iter()
     }
 
+    /// Returns a mutable iterator over all routes.
+    pub fn routes_mut(&mut self) -> impl Iterator<Item = (&Color, &mut Route)> {
+        self.routes.iter_mut()
+    }
+
     /// Returns a mutable reference to the shipyard.
     pub fn shipyard_mut(&mut self) -> &mut Shipyard {
         &mut self.shipyard

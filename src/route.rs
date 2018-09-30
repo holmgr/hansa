@@ -7,6 +7,7 @@ use std::{
 use color::Color;
 use draw::Drawable;
 use port::Port;
+use ship::Ship;
 use tile::{Tile, TileKind};
 use world::World;
 use OrdPosition;
@@ -140,6 +141,12 @@ impl Route {
         Route(vec![])
     }
 
+    /// Adds the given ship to this route.
+    pub fn add_ship(&mut self, ship: Ship) {
+        // TODO: Finish implementation :)
+        println!("Added ship to the route");
+    }
+
     /// Adds a new link to this route, inserting it after start first occures.
     pub fn add_link(
         &mut self,
@@ -182,6 +189,14 @@ impl Route {
             .iter()
             .flat_map(|(_, waypoints)| waypoints.iter())
             .collect::<Vec<_>>()
+    }
+
+    /// Check if the given waypoint is contained on this route.
+    pub fn contains(&self, waypoint: &Waypoint) -> bool {
+        self.0
+            .iter()
+            .flat_map(|(_, waypoints)| waypoints.iter())
+            .any(|w| w == waypoint)
     }
 }
 
