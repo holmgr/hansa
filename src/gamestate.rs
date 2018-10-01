@@ -103,10 +103,12 @@ impl event::EventHandler for GameState {
                 for (_, route) in world.routes_mut() {
                     let next_paths = route
                         .ships()
-                        .map(|s| (s.position(), s.next_waypoint()))
-                        .map(|(curr, next)| {
-                            if next.is_none() {
-                                Some(route.next_path(Position::from(curr)))
+                        .map(|s| (s.reverse(), s.position(), s.next_waypoint()))
+                        .map(|(reverse, curr, next)| {
+                            if next.is_none() && !reverse {
+                                route.next_path(Position::from(curr))
+                            } else if next.is_none() && reverse {
+                                route.previous_path(Position::from(curr))
                             } else {
                                 None
                             }

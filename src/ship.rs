@@ -20,6 +20,8 @@ pub struct Ship {
     position: Waypoint,
     /// Current path.
     path: Vec<Waypoint>,
+    /// If we are on the return trip or not.
+    reverse: bool,
 }
 
 impl Ship {
@@ -31,6 +33,7 @@ impl Ship {
             duration: Duration::new(0, 0),
             position: path[0],
             path,
+            reverse: false,
         }
     }
 
@@ -39,15 +42,30 @@ impl Ship {
         self.position
     }
 
+    /// Returns whether the ship currently is on its return trip.
+    pub fn reverse(&self) -> bool {
+        self.reverse
+    }
+
     /// Returns the next waypoint on the ship's current route.
     /// Will return the 'previous' waypoint if based on reverse state.
     pub fn next_waypoint(&self) -> Option<Waypoint> {
-        self.path
-            .iter()
-            .skip_while(|w| **w != self.position)
-            .skip_while(|w| **w == self.position)
-            .next()
-            .cloned()
+        if self.reverse {
+            self.path
+                .iter()
+                .rev()
+                .skip_while(|w| **w != self.position)
+                .skip_while(|w| **w == self.position)
+                .next()
+                .cloned()
+        } else {
+            self.path
+                .iter()
+                .skip_while(|w| **w != self.position)
+                .skip_while(|w| **w == self.position)
+                .next()
+                .cloned()
+        }
     }
 }
 
@@ -61,12 +79,21 @@ impl Updatable for Ship {
     fn update(&mut self, ctx: &Context, next_path: Option<Vec<Waypoint>>) {
         let current_position = Position::from(self.position);
 
+        if let Some(next_path) = next_path {
+            // TODO: Ugly code due to empty last path.
+            if !next_path.is_empty() {
+                self.path = next_path;
+            }
+        }
         let next_position = Position::from(match self.next_waypoint() {
             Some(w) => w,
             None => {
-                self.path = next_path.expect("No path given");
+                self.reverse = !self.reverse;
+                if self.next_waypoint().is_none() {
+                    println!("{:#?}", self.path.iter().rev());
+                }
                 self.next_waypoint()
-                    .expect("Could not find next position after path switch")
+                    .expect("Could not find next position after turning around")
             }
         });
 

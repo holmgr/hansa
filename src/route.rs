@@ -149,7 +149,6 @@ impl Route {
 
     /// Adds the given ship to this route.
     pub fn add_ship(&mut self, ship: Ship) {
-        // TODO: Finish implementation :)
         println!(
             "Added ship to route:\n{:#?}",
             self.paths.iter().map(|p| p.0).collect::<Vec<_>>()
@@ -174,13 +173,21 @@ impl Route {
     }
 
     /// Returns the next path after the given port location, return None if last.
-    pub fn next_path(&self, port: Position) -> Vec<Waypoint> {
-        let (_, path) = self
-            .paths
+    pub fn next_path(&self, port: Position) -> Option<Vec<Waypoint>> {
+        self.paths
             .iter()
             .find(|(p, _)| *p == port)
-            .expect("Could not find next path");
-        path.clone()
+            .map(|(_, path)| path.clone())
+    }
+
+    /// Returns the previous path after the given port location, return None if first.
+    pub fn previous_path(&self, port: Position) -> Option<Vec<Waypoint>> {
+        self.paths
+            .iter()
+            .rev()
+            .skip_while(|(p, _)| *p != port)
+            .nth(1)
+            .map(|(_, path)| path.clone())
     }
 
     /// Adds a new link to this route, inserting it after start first occures.
