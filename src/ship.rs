@@ -1,4 +1,4 @@
-use ggez::{nalgebra::normalize, Context, timer::get_delta, graphics::{Color as ggezColor, DrawParam, Point2, Rect}};
+use ggez::{Context, timer::get_delta, graphics::{Color as ggezColor, DrawParam, Point2, Rect}};
 use std::time::Duration;
 
 use config::Config;
