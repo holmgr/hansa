@@ -9,8 +9,8 @@ impl Default for Config {
     fn default() -> Config {
         Config {
             scaling: 1,
-            grid_width: 60,
-            grid_height: 30,
+            grid_width: 64,
+            grid_height: 32,
         }
     }
 }

@@ -107,8 +107,8 @@ impl<'a> Drawable<'a> for Waypoint {
         let (r, g, b) = color.rgb();
         DrawParam {
             src: Rect::new(
-                Self::TILE_OFFSET,
-                2. * Self::TILE_OFFSET,
+                Self::TILE_SIZE,
+                2. * Self::TILE_SIZE,
                 Self::TILE_SIZE,
                 Self::TILE_SIZE,
             ),

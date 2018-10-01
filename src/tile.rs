@@ -68,7 +68,7 @@ impl<'a> Drawable<'a> for Tile {
                 Some(TileKind::Water),
                 Some(TileKind::Land),
                 Some(TileKind::Land),
-            ) => Rect::new(0.0, Self::TILE_OFFSET, Self::TILE_SIZE, Self::TILE_SIZE),
+            ) => Rect::new(0.0, Self::TILE_SIZE, Self::TILE_SIZE, Self::TILE_SIZE),
             (
                 TileKind::Land,
                 Some(TileKind::Land),
@@ -76,8 +76,8 @@ impl<'a> Drawable<'a> for Tile {
                 Some(TileKind::Water),
                 Some(TileKind::Land),
             ) => Rect::new(
-                1. * Self::TILE_OFFSET,
-                Self::TILE_OFFSET,
+                1. * Self::TILE_SIZE,
+                Self::TILE_SIZE,
                 Self::TILE_SIZE,
                 Self::TILE_SIZE,
             ),
@@ -88,8 +88,8 @@ impl<'a> Drawable<'a> for Tile {
                 Some(TileKind::Water),
                 Some(TileKind::Water),
             ) => Rect::new(
-                2. * Self::TILE_OFFSET,
-                Self::TILE_OFFSET,
+                2. * Self::TILE_SIZE,
+                Self::TILE_SIZE,
                 Self::TILE_SIZE,
                 Self::TILE_SIZE,
             ),
@@ -100,13 +100,13 @@ impl<'a> Drawable<'a> for Tile {
                 Some(TileKind::Land),
                 Some(TileKind::Water),
             ) => Rect::new(
-                3. * Self::TILE_OFFSET,
-                Self::TILE_OFFSET,
+                3. * Self::TILE_SIZE,
+                Self::TILE_SIZE,
                 Self::TILE_SIZE,
                 Self::TILE_SIZE,
             ),
             (TileKind::Land, _, _, _, _) => {
-                Rect::new(Self::TILE_OFFSET, 0., Self::TILE_SIZE, Self::TILE_SIZE)
+                Rect::new(Self::TILE_SIZE, 0., Self::TILE_SIZE, Self::TILE_SIZE)
             }
         };
 
