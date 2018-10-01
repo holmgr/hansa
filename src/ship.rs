@@ -25,7 +25,7 @@ pub struct Ship {
 }
 
 impl Ship {
-    const SPEED: f32 = 1.5;
+    const SPEED: f32 = 5.;
 
     /// Creates a new ship.
     pub fn new(path: Vec<Waypoint>) -> Self {
@@ -181,7 +181,7 @@ impl Shipyard {
     /// Create a new shipyard.
     pub fn new() -> Self {
         Shipyard {
-            ships: 1, // TODO: Make this scale with progress.
+            ships: 3, // TODO: Make this scale with progress.
         }
     }
 
