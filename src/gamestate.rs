@@ -13,9 +13,9 @@ use port::Port;
 use route::RouteBuilder;
 use ship::ShipBuilder;
 use tile::{Tile, TileKind};
+use update::Updatable;
 use world::World;
 use Position;
-use update::Updatable;
 
 const TILESET_PATH: &str = "/tileset.png";
 const MAP_PATH: &str = "/map.ppm";
@@ -101,19 +101,24 @@ impl event::EventHandler for GameState {
             GameState::Playing { world, .. } => {
                 // Update all ships.
                 for (_, route) in world.routes_mut() {
-                    let next_waypoints = route.ships().map(|s| s.position()).map(|w| route.next_waypoint(w).expect("No next waypoint")).collect::<Vec<_>>();
-                    next_waypoints.into_iter().zip(route.ships_mut()).for_each(|(w, s)| {
-                        s.update(ctx, &w);
-                    });
-                    /*
-                    for ship in route.ships_mut() {
-                        // TODO: Must handle waypoints ending, and returning ships back.
-                        let next_waypoint = route.next_waypoint(ship.position()).expect("No next waypoint");
-                        ship.update(ctx, &next_waypoint)
-                    }
-                    */
+                    let next_paths = route
+                        .ships()
+                        .map(|s| (s.position(), s.next_waypoint()))
+                        .map(|(curr, next)| {
+                            if next.is_none() {
+                                Some(route.next_path(Position::from(curr)))
+                            } else {
+                                None
+                            }
+                        }).collect::<Vec<_>>();
+                    next_paths
+                        .into_iter()
+                        .zip(route.ships_mut())
+                        .for_each(|(path, ship)| {
+                            ship.update(ctx, path);
+                        });
                 }
-            },
+            }
         };
         Ok(())
     }
@@ -299,8 +304,7 @@ impl event::EventHandler for GameState {
                 for (_, route) in world.routes() {
                     for ship in route.ships() {
                         // TODO: Must handle waypoints ending, and returning ships back.
-                        let next_waypoint = route.next_waypoint(ship.position()).expect("No next waypoint");
-                        sprite_drawer.draw_item(ctx, config, ship, &next_waypoint, true);
+                        sprite_drawer.draw_item(ctx, config, ship, &(), true);
                     }
                 }
 

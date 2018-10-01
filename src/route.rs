@@ -135,7 +135,7 @@ impl From<Waypoint> for Position {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Route {
     ships: Vec<Ship>,
-    paths: Vec<(Position, Vec<Waypoint>)>
+    paths: Vec<(Position, Vec<Waypoint>)>,
 }
 
 impl Route {
@@ -143,14 +143,17 @@ impl Route {
     pub fn new() -> Route {
         Route {
             ships: vec![],
-            paths: vec![]
+            paths: vec![],
         }
     }
 
     /// Adds the given ship to this route.
     pub fn add_ship(&mut self, ship: Ship) {
         // TODO: Finish implementation :)
-        println!("Added ship to the route");
+        println!(
+            "Added ship to route:\n{:#?}",
+            self.paths.iter().map(|p| p.0).collect::<Vec<_>>()
+        );
         self.ships.push(ship);
     }
 
@@ -164,15 +167,20 @@ impl Route {
         self.ships.iter_mut()
     }
 
-    /// Returns the next waypoint after the given one, return None if last.
-    pub fn next_waypoint(&self, waypoint: Waypoint) -> Option<Waypoint> {
-        self.paths
+    /// Returns the first path.
+    pub fn initial_path(&self) -> Vec<Waypoint> {
+        let (_, ref path) = self.paths[0];
+        path.clone()
+    }
+
+    /// Returns the next path after the given port location, return None if last.
+    pub fn next_path(&self, port: Position) -> Vec<Waypoint> {
+        let (_, path) = self
+            .paths
             .iter()
-            .flat_map(|(_, waypoints)| waypoints.iter())
-            .skip_while(|w| **w != waypoint)
-            .skip(1)
-            .next()
-            .map(|w| w.clone())
+            .find(|(p, _)| *p == port)
+            .expect("Could not find next path");
+        path.clone()
     }
 
     /// Adds a new link to this route, inserting it after start first occures.
@@ -185,14 +193,21 @@ impl Route {
         path: Vec<Waypoint>,
     ) {
         // Find the index to insert a path to the new end node.
-        let index = self.paths.iter().position(|(p, _)| *p == start).unwrap_or(0);
+        let index = self
+            .paths
+            .iter()
+            .position(|(p, _)| *p == start)
+            .unwrap_or(0);
         // Add empty new path.
         self.paths.insert(index, (start, path));
 
         // If a path already existed path from start to something else make
         // sure that, our node node leads to that old node.
-        if let Some((port, _)) = self.paths.get_mut(index + 1) {
+        if self.paths.len() > index + 1 {
+            let (port, _) = &mut self.paths[index + 1];
             *port = end;
+        } else {
+            self.paths.push((end, vec![]));
         }
 
         // Rebuild routes after.
