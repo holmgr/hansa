@@ -50,21 +50,16 @@ impl Ship {
     /// Returns the next waypoint on the ship's current route.
     /// Will return the 'previous' waypoint if based on reverse state.
     pub fn next_waypoint(&self) -> Option<Waypoint> {
+
+        let current_position = self.path
+            .iter()
+            .position(|w| *w == self.position)
+            .expect("Current position not on path");
         if self.reverse {
-            self.path
-                .iter()
-                .rev()
-                .skip_while(|w| **w != self.position)
-                .skip_while(|w| **w == self.position)
-                .next()
-                .cloned()
-        } else {
-            self.path
-                .iter()
-                .skip_while(|w| **w != self.position)
-                .skip_while(|w| **w == self.position)
-                .next()
-                .cloned()
+            self.path.get(current_position - 1).map(|w| w.clone())
+        }
+        else {
+            self.path.get(current_position + 1).map(|w| w.clone())
         }
     }
 }
