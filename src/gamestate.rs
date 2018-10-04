@@ -9,13 +9,13 @@ use std::{
 use color::ColorSelector;
 use config::Config;
 use draw::SpriteDrawer;
+use geometry::Position;
 use port::Port;
 use route::RouteBuilder;
 use ship::ShipBuilder;
 use tile::{Tile, TileKind};
 use update::Updatable;
 use world::World;
-use Position;
 
 const TILESET_PATH: &str = "/tileset.png";
 const MAP_PATH: &str = "/map.ppm";
@@ -27,9 +27,9 @@ fn load_world(ctx: &mut Context, config: &Config) -> World {
     map_file.read_exact(&mut header_buffer).unwrap();
 
     let map_file = BufReader::new(map_file);
-    let buffer: Vec<u32> = map_file
+    let buffer: Vec<i32> = map_file
         .lines()
-        .map(|s| s.unwrap().parse::<u32>().unwrap())
+        .map(|s| s.unwrap().parse::<i32>().unwrap())
         .collect();
 
     let mut map = vec![];
@@ -127,7 +127,7 @@ impl event::EventHandler for GameState {
         y: i32,
     ) {
         let (window_width, _) = graphics::get_drawable_size(ctx);
-        let cell_size = (self.config.scaling * window_width / self.config.grid_width) as i32;
+        let cell_size = self.config.scaling * window_width / self.config.grid_width;
 
         // Check that we start to draw from a port.
         let mouse_position = Position::new(
@@ -135,27 +135,24 @@ impl event::EventHandler for GameState {
             self.config.scaling as i32 * y,
         );
         let mouse_position_scaled = Position::new(
-            self.config.scaling as i32 * x / cell_size,
-            self.config.scaling as i32 * y / cell_size,
+            self.config.scaling as i32 * x / cell_size as i32,
+            self.config.scaling as i32 * y / cell_size as i32,
         );
 
         // Check if some mouse button on some color.
         let num_colors = self.color_selector.colors().count() as u32;
         let color_selector_x_offset =
-            (self.config.grid_width / 2 - num_colors + 1) as i32 * cell_size;
-        let color_selector_y_offset = (self.config.grid_height + 1) as i32 * cell_size;
+            ((self.config.grid_width / 2 - num_colors + 1) * cell_size) as i32;
+        let color_selector_y_offset = ((self.config.grid_height + 1) * cell_size) as i32;
 
         for index in 0..num_colors {
             let color_position = Position::new(
-                color_selector_x_offset + (2 * index as i32 * cell_size + cell_size / 2),
-                color_selector_y_offset + cell_size / 2,
+                color_selector_x_offset + (2 * index * cell_size + cell_size / 2) as i32,
+                color_selector_y_offset + cell_size as i32 / 2,
             );
 
             // Check eucidean distance.
-            if (color_position.coords.x - mouse_position.coords.x).pow(2)
-                + (color_position.coords.y - mouse_position.coords.y).pow(2)
-                < cell_size.pow(2)
-            {
+            if color_position.distance(&mouse_position) <= cell_size as f32 {
                 self.color_selector.toggle(index as usize);
                 println!("Toggling color: {:?}", self.color_selector.selected());
             }
@@ -177,16 +174,13 @@ impl event::EventHandler for GameState {
             _ => {
                 // Check if some mouse button on shipyard.
                 // TODO: Duplicated position logic.
-                let shipyard_x_offset = (self.config.grid_width as i32 / 2) * cell_size;
-                let shipyard_y_offset = (self.config.grid_height as i32 + 3) * cell_size;
+                let shipyard_x_offset = ((self.config.grid_width / 2) * cell_size) as i32;
+                let shipyard_y_offset = ((self.config.grid_height + 3) * cell_size) as i32;
 
                 let shipyard_position = Position::new(shipyard_x_offset, shipyard_y_offset);
                 // Check if player has any ship available.
 
-                if (shipyard_position.coords.x - mouse_position.coords.x).pow(2)
-                    + (shipyard_position.coords.y - mouse_position.coords.y).pow(2)
-                    < cell_size.pow(2)
-                {
+                if shipyard_position.distance(&mouse_position) <= cell_size as f32 {
                     self.world.shipyard_mut().build()
                 } else {
                     None
@@ -214,8 +208,8 @@ impl event::EventHandler for GameState {
                     && self.color_selector.selected().is_some()
                 {
                     Some(RouteBuilder::new(Position::new(
-                        self.config.scaling as i32 * x / cell_size,
-                        self.config.scaling as i32 * y / cell_size,
+                        self.config.scaling as i32 * x / cell_size as i32,
+                        self.config.scaling as i32 * y / cell_size as i32,
                     )))
                 } else {
                     None
@@ -235,12 +229,12 @@ impl event::EventHandler for GameState {
         _yrel: i32,
     ) {
         let (window_width, _) = graphics::get_drawable_size(ctx);
-        let cell_size = (self.config.scaling * window_width / self.config.grid_width) as i32;
+        let cell_size = self.config.scaling * window_width / self.config.grid_width;
         if let Some(rb) = &mut self.route_builder {
             rb.update(
                 Position::new(
-                    self.config.scaling as i32 * x / cell_size,
-                    self.config.scaling as i32 * y / cell_size,
+                    self.config.scaling as i32 * x / cell_size as i32,
+                    self.config.scaling as i32 * y / cell_size as i32,
                 ),
                 &self.world,
             );

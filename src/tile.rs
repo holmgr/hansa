@@ -1,8 +1,8 @@
 use ggez::graphics::{DrawParam, Point2, Rect};
 
 use draw::Drawable;
+use geometry::Position;
 use world::World;
-use Position;
 
 /// Sepecific Tile type.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,7 +36,7 @@ impl Tile {
 
     /// Returns a list of all neighbors (north, east, south, west).
     pub fn neighbors(&self) -> [Position; 4] {
-        let (x, y) = (self.position.coords.x, self.position.coords.y);
+        let (x, y) = (self.position.x, self.position.y);
         [
             Position::new(x, y - 1),
             Position::new(x + 1, y),
@@ -110,8 +110,7 @@ impl<'a> Drawable<'a> for Tile {
             }
         };
 
-        let position = self.position();
-        let dest = Point2::new(position.coords.x as f32, self.position.coords.y as f32);
+        let dest = Point2::from(self.position);
         DrawParam {
             src,
             dest,

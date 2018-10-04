@@ -1,51 +1,22 @@
 #[macro_use]
 extern crate serde_derive;
 extern crate ggez;
-extern crate nalgebra as na;
 extern crate serde;
 extern crate serde_json;
 use ggez::{conf, event, Context};
-use std::{cmp::Ordering, env, path::PathBuf};
+use std::{env, path::PathBuf};
 
 pub mod color;
 pub mod config;
 pub mod draw;
 mod gamestate;
+pub mod geometry;
 pub mod port;
 pub mod route;
 pub mod ship;
 pub mod tile;
 pub mod update;
 pub mod world;
-
-/// General position type.
-pub type Position = na::Point2<i32>;
-
-/// Ordered position based on weight.
-pub struct OrdPosition {
-    pub position: Position,
-    pub weight: i32,
-}
-
-impl Ord for OrdPosition {
-    fn cmp(&self, other: &OrdPosition) -> Ordering {
-        other.weight.partial_cmp(&self.weight).unwrap()
-    }
-}
-
-impl PartialOrd for OrdPosition {
-    fn partial_cmp(&self, other: &OrdPosition) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for OrdPosition {
-    fn eq(&self, other: &OrdPosition) -> bool {
-        self.weight == other.weight
-    }
-}
-
-impl Eq for OrdPosition {}
 
 static GAME_ID: &str = "hansa";
 static AUTHOR: &str = "holmgr";

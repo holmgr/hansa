@@ -1,8 +1,8 @@
 use ggez::graphics::{DrawParam, Point2, Rect};
 
 use draw::Drawable;
+use geometry::Position;
 use world::World;
-use Position;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Port {
@@ -27,7 +27,7 @@ impl<'a> Drawable<'a> for Port {
     fn draw(&self, _world: &World) -> DrawParam {
         DrawParam {
             src: Rect::new(0., 2. * Self::TILE_OFFSET, Self::TILE_SIZE, Self::TILE_SIZE),
-            dest: Point2::new(self.position.coords.x as f32, self.position.coords.y as f32),
+            dest: Point2::from(self.position),
             ..Default::default()
         }
     }

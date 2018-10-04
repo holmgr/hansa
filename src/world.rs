@@ -1,10 +1,10 @@
 use color::Color;
+use geometry::Position;
 use port::Port;
 use route::{find_path, reachable, Route, Waypoint};
 use ship::Shipyard;
 use std::{collections::HashMap, iter::FromIterator};
 use tile::Tile;
-use Position;
 
 /// Holds all information on the game world.
 #[derive(Serialize, Deserialize, Debug, Clone)]

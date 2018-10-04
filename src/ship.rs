@@ -7,10 +7,10 @@ use std::time::Duration;
 
 use config::Config;
 use draw::Drawable;
+use geometry::Position;
 use route::Waypoint;
 use update::Updatable;
 use world::World;
-use Position;
 
 /// A ship which transports resources between ports along a route.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -50,15 +50,14 @@ impl Ship {
     /// Returns the next waypoint on the ship's current route.
     /// Will return the 'previous' waypoint if based on reverse state.
     pub fn next_waypoint(&self) -> Option<Waypoint> {
-
-        let current_position = self.path
+        let current_position = self
+            .path
             .iter()
             .position(|w| *w == self.position)
             .expect("Current position not on path");
         if self.reverse {
             self.path.get(current_position - 1).map(|w| w.clone())
-        }
-        else {
+        } else {
             self.path.get(current_position + 1).map(|w| w.clone())
         }
     }
@@ -92,9 +91,7 @@ impl Updatable for Ship {
             }
         });
 
-        let distance_to_next = ((current_position.coords.x - next_position.coords.x).pow(2) as f32
-            + (current_position.coords.y - next_position.coords.y).pow(2) as f32)
-            .sqrt();
+        let distance_to_next = current_position.distance(&next_position);
         let delta_since_move = get_delta(ctx) + self.duration;
 
         // Move to next ewaypoint.
@@ -106,7 +103,7 @@ impl Updatable for Ship {
             self.position = Waypoint::from(next_position);
             self.duration = Duration::new(0, 0); // Does not consider if we over reach!!!
             println!(
-                "Next position: {}, current: {}",
+                "Next position: {:?}, current: {:?}",
                 next_position, current_position
             );
         } else {
@@ -123,12 +120,8 @@ impl<'a> Drawable<'a> for Ship {
         let interpolated_position = match self.next_waypoint() {
             Some(p) => {
                 let next_position = Position::from(p);
-                let base_translation = Point2::new(
-                    (next_position.coords.x - current_position.coords.x) as f32,
-                    (next_position.coords.y - current_position.coords.y) as f32,
-                );
-                let magnitute =
-                    (base_translation.coords.x.powi(2) + base_translation.coords.y.powi(2)).sqrt();
+                let base_translation = next_position - current_position;
+                let magnitute = base_translation.distance_origo();
                 let distance_traveled = (self.duration.as_secs() as u32 * 1000
                     + self.duration.subsec_millis()) as f32
                     * Self::SPEED
@@ -138,17 +131,14 @@ impl<'a> Drawable<'a> for Ship {
                 //println!("Translate factor: {}", translate_factor);
 
                 Point2::new(
-                    current_position.coords.x as f32 + base_translation.coords.x * translate_factor,
-                    current_position.coords.y as f32 + base_translation.coords.y * translate_factor,
+                    current_position.x as f32 + (base_translation.x as f32 * translate_factor),
+                    current_position.y as f32 + (base_translation.y as f32 * translate_factor),
                 )
-                //println!("Drawing ship on position: {}", interpolated_position);
             }
+            //println!("Drawing ship on position: {}", interpolated_position);
             None => {
                 println!("No next position when drawing, fallback to same position");
-                Point2::new(
-                    current_position.coords.x as f32,
-                    current_position.coords.y as f32,
-                )
+                Point2::from(current_position)
             }
         };
 

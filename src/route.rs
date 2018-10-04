@@ -6,12 +6,11 @@ use std::{
 
 use color::Color;
 use draw::Drawable;
+use geometry::{OrdPosition, Position};
 use port::Port;
 use ship::Ship;
 use tile::{Tile, TileKind};
 use world::World;
-use OrdPosition;
-use Position;
 
 /// Returns all reachable tiles from a given position which a trade
 /// route can pass through.
@@ -19,9 +18,7 @@ pub fn reachable(map: &[Tile], ports: &[Port], position: Position) -> Vec<Positi
     map.iter()
         .filter(move |tile| {
             let other_position = tile.position();
-            (position.coords.x - other_position.coords.x).abs()
-                + (position.coords.y - other_position.coords.y).abs()
-                <= 1
+            position.distance(&other_position) <= 1.
                 && (tile.kind() == TileKind::Water
                     || ports.iter().any(|p| p.position() == other_position))
         }).map(|tile| tile.position())
@@ -112,7 +109,7 @@ impl<'a> Drawable<'a> for Waypoint {
                 Self::TILE_SIZE,
                 Self::TILE_SIZE,
             ),
-            dest: Point2::new(self.0.coords.x as f32, self.0.coords.y as f32),
+            dest: Point2::from(self.0),
             color: Some(ggezColor::from_rgb(r, g, b)),
             ..Default::default()
         }
