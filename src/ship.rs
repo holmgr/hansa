@@ -117,7 +117,7 @@ impl<'a> Drawable<'a> for Ship {
 
     fn draw(&self, _: &()) -> DrawParam {
         let current_position = Position::from(self.position);
-        let interpolated_position = match self.next_waypoint() {
+        let (mut interpolated_position, rotation) = match self.next_waypoint() {
             Some(p) => {
                 let next_position = Position::from(p);
                 let base_translation = next_position - current_position;
@@ -130,17 +130,24 @@ impl<'a> Drawable<'a> for Ship {
                 let translate_factor = distance_traveled / magnitute;
                 //println!("Translate factor: {}", translate_factor);
 
-                Point2::new(
-                    current_position.x as f32 + (base_translation.x as f32 * translate_factor),
-                    current_position.y as f32 + (base_translation.y as f32 * translate_factor),
+                (
+                    Point2::new(
+                        current_position.x as f32 + (base_translation.x as f32 * translate_factor),
+                        current_position.y as f32 + (base_translation.y as f32 * translate_factor),
+                    ),
+                    base_translation.direction(),
                 )
             }
             //println!("Drawing ship on position: {}", interpolated_position);
             None => {
                 println!("No next position when drawing, fallback to same position");
-                Point2::from(current_position)
+                (Point2::from(current_position), 0.)
             }
         };
+
+        // Add half cell to offset for rotation.
+        interpolated_position.coords.x += 0.5;
+        interpolated_position.coords.y += 0.5;
 
         DrawParam {
             src: Rect::new(
@@ -150,6 +157,8 @@ impl<'a> Drawable<'a> for Ship {
                 Self::TILE_SIZE,
             ),
             dest: interpolated_position,
+            rotation,
+            offset: Point2::new(0.5, 0.5),
             color: Some(ggezColor::from_rgb(69, 55, 52)),
             ..Default::default()
         }

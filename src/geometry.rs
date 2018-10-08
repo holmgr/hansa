@@ -26,6 +26,11 @@ impl Position {
     pub fn distance_origo(&self) -> f32 {
         self.distance(&Position::default())
     }
+
+    /// Returns the direction as an angle, in radians, between origo and the point.
+    pub fn direction(&self) -> f32 {
+        (self.y as f32 / self.x as f32).atan()
+    }
 }
 
 impl Add for Position {
