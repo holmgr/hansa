@@ -49,7 +49,7 @@ impl SpriteDrawer {
 
         // Scale the param to so it matches grid size screen.
         let (window_width, _) = get_drawable_size(ctx);
-        let cell_size = (config.scaling * window_width / config.grid_width) as f32;
+        let cell_size = (config.scaling * window_width) as f32 / config.grid_width as f32;
 
         // TODO: Move magic constant here.
         param.scale = Point2::new(

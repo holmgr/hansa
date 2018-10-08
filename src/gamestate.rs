@@ -127,7 +127,7 @@ impl event::EventHandler for GameState {
         y: i32,
     ) {
         let (window_width, _) = graphics::get_drawable_size(ctx);
-        let cell_size = self.config.scaling * window_width / self.config.grid_width;
+        let cell_size = (self.config.scaling * window_width) as f32 / self.config.grid_width as f32;
 
         // Check that we start to draw from a port.
         let mouse_position = Position::new(
@@ -142,13 +142,13 @@ impl event::EventHandler for GameState {
         // Check if some mouse button on some color.
         let num_colors = self.color_selector.colors().count() as u32;
         let color_selector_x_offset =
-            ((self.config.grid_width / 2 - num_colors + 1) * cell_size) as i32;
-        let color_selector_y_offset = ((self.config.grid_height + 1) * cell_size) as i32;
+            (self.config.grid_width as f32 / 2. - num_colors as f32 + 1.) * cell_size;
+        let color_selector_y_offset = (self.config.grid_height as f32 + 1.) * cell_size;
 
         for index in 0..num_colors {
             let color_position = Position::new(
-                color_selector_x_offset + (2 * index * cell_size + cell_size / 2) as i32,
-                color_selector_y_offset + cell_size as i32 / 2,
+                (color_selector_x_offset + ((2. * index as f32 + 0.5) * cell_size)) as i32,
+                (color_selector_y_offset + cell_size / 2.) as i32,
             );
 
             // Check eucidean distance.
@@ -174,8 +174,8 @@ impl event::EventHandler for GameState {
             _ => {
                 // Check if some mouse button on shipyard.
                 // TODO: Duplicated position logic.
-                let shipyard_x_offset = ((self.config.grid_width / 2) * cell_size) as i32;
-                let shipyard_y_offset = ((self.config.grid_height + 3) * cell_size) as i32;
+                let shipyard_x_offset = ((self.config.grid_width as f32 / 2.) * cell_size) as i32;
+                let shipyard_y_offset = ((self.config.grid_height as f32 + 2.5) * cell_size) as i32;
 
                 let shipyard_position = Position::new(shipyard_x_offset, shipyard_y_offset);
                 // Check if player has any ship available.
