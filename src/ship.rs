@@ -102,10 +102,6 @@ impl Updatable for Ship {
         {
             self.position = Waypoint::from(next_position);
             self.duration = Duration::new(0, 0); // Does not consider if we over reach!!!
-            println!(
-                "Next position: {:?}, current: {:?}",
-                next_position, current_position
-            );
         } else {
             self.duration = delta_since_move;
         }
