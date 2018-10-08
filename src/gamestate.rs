@@ -6,12 +6,11 @@ use std::{
     mem,
 };
 
-use color::ColorSelector;
 use config::Config;
 use draw::SpriteDrawer;
 use geometry::Position;
 use port::Port;
-use route::RouteBuilder;
+use route::{RouteBuilder, ShapeSelector};
 use ship::ShipBuilder;
 use tile::{Tile, TileKind};
 use update::Updatable;
@@ -65,7 +64,7 @@ pub struct GameState {
     world: World,
     route_builder: Option<RouteBuilder>,
     ship_builder: Option<ShipBuilder>,
-    color_selector: ColorSelector,
+    shape_selector: ShapeSelector,
 }
 
 impl GameState {
@@ -85,7 +84,7 @@ impl GameState {
             world,
             route_builder: None,
             ship_builder: None,
-            color_selector: ColorSelector::new(),
+            shape_selector: ShapeSelector::new(),
         };
         Ok(state)
     }
@@ -139,22 +138,22 @@ impl event::EventHandler for GameState {
             self.config.scaling as i32 * y / cell_size as i32,
         );
 
-        // Check if some mouse button on some color.
-        let num_colors = self.color_selector.colors().count() as u32;
-        let color_selector_x_offset =
-            (self.config.grid_width as f32 / 2. - num_colors as f32 + 1.) * cell_size;
-        let color_selector_y_offset = (self.config.grid_height as f32 + 1.) * cell_size;
+        // Check if some mouse button on some shape.
+        let num_shapes = self.shape_selector.shapes().count() as u32;
+        let shape_selector_x_offset =
+            (self.config.grid_width as f32 / 2. - num_shapes as f32 + 1.) * cell_size;
+        let shape_selector_y_offset = (self.config.grid_height as f32 + 1.) * cell_size;
 
-        for index in 0..num_colors {
-            let color_position = Position::new(
-                (color_selector_x_offset + ((2. * index as f32 + 0.5) * cell_size)) as i32,
-                (color_selector_y_offset + cell_size / 2.) as i32,
+        for index in 0..num_shapes {
+            let shape_position = Position::new(
+                (shape_selector_x_offset + ((2. * index as f32 + 0.5) * cell_size)) as i32,
+                (shape_selector_y_offset + cell_size / 2.) as i32,
             );
 
             // Check eucidean distance.
-            if color_position.distance(mouse_position) <= cell_size as f32 {
-                self.color_selector.toggle(index as usize);
-                println!("Toggling color: {:?}", self.color_selector.selected());
+            if shape_position.distance(mouse_position) <= cell_size as f32 {
+                self.shape_selector.toggle(index as usize);
+                println!("Toggling shape: {:?}", self.shape_selector.selected());
             }
         }
 
@@ -192,11 +191,11 @@ impl event::EventHandler for GameState {
             // Drawing already in progress, stop drawing.
             Some(rb) => {
                 if self.world.port(mouse_position_scaled).is_some() {
-                    // Add an actual route here if, ensure we have a color selected.
-                    if let Some(color) = self.color_selector.selected() {
+                    // Add an actual route here if, ensure we have a shape selected.
+                    if let Some(shape) = self.shape_selector.selected() {
                         if let Some(path) = rb.path() {
                             self.world
-                                .add_route(color, *rb.from(), *rb.to(), path.clone())
+                                .add_route(shape, *rb.from(), *rb.to(), path.clone())
                         }
                     }
                 }
@@ -205,7 +204,7 @@ impl event::EventHandler for GameState {
             // Start drawing a new path
             None => {
                 if self.world.port(mouse_position_scaled).is_some()
-                    && self.color_selector.selected().is_some()
+                    && self.shape_selector.selected().is_some()
                 {
                     Some(RouteBuilder::new(Position::new(
                         self.config.scaling as i32 * x / cell_size as i32,
@@ -257,10 +256,10 @@ impl event::EventHandler for GameState {
         }
 
         // Draw all routes.
-        for (color, route) in self.world.routes() {
+        for (shape, route) in self.world.routes() {
             for waypoint in route.waypoints() {
                 self.sprite_drawer
-                    .draw_item(ctx, &self.config, waypoint, color, true);
+                    .draw_item(ctx, &self.config, waypoint, shape, true);
             }
         }
 
@@ -276,10 +275,10 @@ impl event::EventHandler for GameState {
         // Draw route (id any) currently being created.
         if let Some(builder) = &self.route_builder {
             if let Some(waypoints) = builder.path() {
-                let color = self.color_selector.selected().unwrap();
+                let shape = self.shape_selector.selected().unwrap();
                 for waypoint in waypoints {
                     self.sprite_drawer
-                        .draw_item(ctx, &self.config, waypoint, &color, true);
+                        .draw_item(ctx, &self.config, waypoint, &shape, true);
                 }
             }
         }
@@ -290,13 +289,13 @@ impl event::EventHandler for GameState {
                 .draw_item(ctx, &self.config, port, &self.world, true);
         }
 
-        // Draw color selector.
-        for color in self.color_selector.colors() {
+        // Draw shape selector.
+        for shape in self.shape_selector.shapes() {
             self.sprite_drawer.draw_item(
                 ctx,
                 &self.config,
-                color,
-                &(&self.config, &self.color_selector),
+                shape,
+                &(&self.config, &self.shape_selector),
                 true,
             );
         }
