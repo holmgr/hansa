@@ -1,18 +1,25 @@
 use ggez::graphics::{DrawParam, Point2, Rect};
 
+use color::Color;
 use draw::Drawable;
 use geometry::Position;
 use world::World;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Port {
+    import: Color,
+    export: Color,
     position: Position,
 }
 
 impl Port {
     /// Creates a new port.
     pub fn new(position: Position) -> Self {
-        Port { position }
+        Port { 
+            position,
+            import: Color::Red,
+            export: Color::Purple
+        }
     }
 
     /// Returns the position.
