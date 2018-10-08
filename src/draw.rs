@@ -11,8 +11,8 @@ use config::Config;
 /// A drawable type.
 pub trait Drawable<'a> {
     // TODO: Move magic constant here.
-    const TILE_SIZE: f32 = 65. / 256.;
-    const TILE_OFFSET: f32 = 64. / 256.;
+    const TILE_SIZE: f32 = 513. / 2048.;
+    const TILE_OFFSET: f32 = 512. / 2048.;
 
     /// Environmental data needed to draw item.
     type Data;
@@ -53,8 +53,8 @@ impl SpriteDrawer {
 
         // TODO: Move magic constant here.
         param.scale = Point2::new(
-            param.scale.x * cell_size / 64.,
-            param.scale.y * cell_size / 64.,
+            param.scale.x * cell_size / 512.,
+            param.scale.y * cell_size / 512.,
         );
 
         // Scale to grid coordinates only if needed.
