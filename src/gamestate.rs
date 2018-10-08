@@ -152,7 +152,7 @@ impl event::EventHandler for GameState {
             );
 
             // Check eucidean distance.
-            if color_position.distance(&mouse_position) <= cell_size as f32 {
+            if color_position.distance(mouse_position) <= cell_size as f32 {
                 self.color_selector.toggle(index as usize);
                 println!("Toggling color: {:?}", self.color_selector.selected());
             }
@@ -180,7 +180,7 @@ impl event::EventHandler for GameState {
                 let shipyard_position = Position::new(shipyard_x_offset, shipyard_y_offset);
                 // Check if player has any ship available.
 
-                if shipyard_position.distance(&mouse_position) <= cell_size as f32 {
+                if shipyard_position.distance(mouse_position) <= cell_size as f32 {
                     self.world.shipyard_mut().build()
                 } else {
                     None

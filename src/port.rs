@@ -16,7 +16,7 @@ impl Port {
     }
 
     /// Returns the position.
-    pub fn position(&self) -> Position {
+    pub fn position(self) -> Position {
         self.position
     }
 }

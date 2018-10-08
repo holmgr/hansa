@@ -56,9 +56,9 @@ impl Ship {
             .position(|w| *w == self.position)
             .expect("Current position not on path");
         if self.reverse {
-            self.path.get(current_position - 1).map(|w| w.clone())
+            self.path.get(current_position - 1).cloned()
         } else {
-            self.path.get(current_position + 1).map(|w| w.clone())
+            self.path.get(current_position + 1).cloned()
         }
     }
 }
@@ -91,7 +91,7 @@ impl Updatable for Ship {
             }
         });
 
-        let distance_to_next = current_position.distance(&next_position);
+        let distance_to_next = current_position.distance(next_position);
         let delta_since_move = get_delta(ctx) + self.duration;
 
         // Move to next ewaypoint.
@@ -243,7 +243,7 @@ impl ShipBuilder {
         // valid path there.
 
         let waypoint = Waypoint::from(position);
-        if let Some((_, route)) = world.routes_mut().find(|(_, r)| r.contains(&waypoint)) {
+        if let Some((_, route)) = world.routes_mut().find(|(_, r)| r.contains(waypoint)) {
             println!("Placed ship on route!");
             let initial_path = route.initial_path();
             route.add_ship(Ship::new(initial_path));

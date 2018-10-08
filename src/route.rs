@@ -18,7 +18,7 @@ pub fn reachable(map: &[Tile], ports: &[Port], position: Position) -> Vec<Positi
     map.iter()
         .filter(move |tile| {
             let other_position = tile.position();
-            position.distance(&other_position) <= 1.
+            position.distance(other_position) <= 1.
                 && (tile.kind() == TileKind::Water
                     || ports.iter().any(|p| p.position() == other_position))
         }).map(|tile| tile.position())
@@ -239,11 +239,11 @@ impl Route {
     }
 
     /// Check if the given waypoint is contained on this route.
-    pub fn contains(&self, waypoint: &Waypoint) -> bool {
+    pub fn contains(&self, waypoint: Waypoint) -> bool {
         self.paths
             .iter()
             .flat_map(|(_, waypoints)| waypoints.iter())
-            .any(|w| w == waypoint)
+            .any(|w| *w == waypoint)
     }
 }
 
