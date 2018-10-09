@@ -93,7 +93,7 @@ pub fn find_path(
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// A waypoint is a drawable position.
 pub struct Waypoint(Position);
 
@@ -133,7 +133,7 @@ impl From<Waypoint> for Position {
 }
 
 /// Represents the visual display of the route path.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RouteShape {
     Plus,
     Cross,
@@ -234,7 +234,7 @@ impl ShapeSelector {
 }
 
 /// Represents a trading route which exists between a series of ports.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Route {
     ships: Vec<Ship>,
     paths: Vec<(Position, Vec<Waypoint>)>,
