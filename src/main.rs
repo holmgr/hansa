@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate serde_derive;
 extern crate ggez;
+extern crate rand;
 extern crate serde;
 extern crate serde_json;
 use ggez::{conf, event, Context};

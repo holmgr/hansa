@@ -63,7 +63,7 @@ impl Ship {
     }
 }
 
-impl Updatable for Ship {
+impl<'a> Updatable<'a> for Ship {
     type Data = Option<Vec<Waypoint>>;
 
     /// Updates the internal duration since last waypoint, moving to new
@@ -111,7 +111,7 @@ impl Updatable for Ship {
 impl<'a> Drawable<'a> for Ship {
     type Data = (); // Mouse position
 
-    fn draw(&self, _: &()) -> DrawParam {
+    fn draw(&self, _: &()) -> Vec<DrawParam> {
         let current_position = Position::from(self.position);
         let (mut interpolated_position, rotation) = match self.next_waypoint() {
             Some(p) => {
@@ -145,7 +145,7 @@ impl<'a> Drawable<'a> for Ship {
         interpolated_position.coords.x += 0.5;
         interpolated_position.coords.y += 0.5;
 
-        DrawParam {
+        vec![DrawParam {
             src: Rect::new(
                 3. * Self::TILE_SIZE,
                 2. * Self::TILE_SIZE,
@@ -157,7 +157,7 @@ impl<'a> Drawable<'a> for Ship {
             offset: Point2::new(0.5, 0.5),
             color: Some(ggezColor::from_rgb(69, 55, 52)),
             ..Default::default()
-        }
+        }]
     }
 }
 
@@ -204,10 +204,10 @@ impl Shipyard {
 impl<'a> Drawable<'a> for Shipyard {
     type Data = Config;
 
-    fn draw(&self, data: &Config) -> DrawParam {
+    fn draw(&self, data: &Config) -> Vec<DrawParam> {
         let x_offset = (data.grid_width / 2) as f32;
         let y_offset = data.grid_height as f32 + 3.;
-        DrawParam {
+        vec![DrawParam {
             src: Rect::new(
                 3. * Self::TILE_SIZE,
                 2. * Self::TILE_SIZE,
@@ -218,7 +218,7 @@ impl<'a> Drawable<'a> for Shipyard {
             color: Some(ggezColor::from_rgb(69, 55, 52)),
             offset: Point2::new(0.5, 0.5),
             ..Default::default()
-        }
+        }]
     }
 }
 
@@ -253,8 +253,8 @@ impl ShipBuilder {
 impl<'a> Drawable<'a> for ShipBuilder {
     type Data = Point2; // Mouse position
 
-    fn draw(&self, mouse: &Point2) -> DrawParam {
-        DrawParam {
+    fn draw(&self, mouse: &Point2) -> Vec<DrawParam> {
+        vec![DrawParam {
             src: Rect::new(
                 3. * Self::TILE_SIZE,
                 2. * Self::TILE_SIZE,
@@ -265,6 +265,6 @@ impl<'a> Drawable<'a> for ShipBuilder {
             offset: Point2::new(0.5, 0.5),
             color: Some(ggezColor::from_rgb(69, 55, 52)),
             ..Default::default()
-        }
+        }]
     }
 }

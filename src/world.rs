@@ -1,7 +1,6 @@
-use color::Color;
 use geometry::Position;
 use port::Port;
-use route::{find_path, reachable, Route, Waypoint};
+use route::{find_path, reachable, Route, RouteShape, Waypoint};
 use ship::Shipyard;
 use std::{collections::HashMap, iter::FromIterator};
 use tile::Tile;
@@ -11,7 +10,7 @@ use tile::Tile;
 pub struct World {
     map: Vec<Tile>,
     ports: Vec<Port>,
-    routes: HashMap<Color, Route>,
+    routes: HashMap<RouteShape, Route>,
     shipyard: Shipyard,
 }
 
@@ -40,13 +39,18 @@ impl World {
         &self.ports
     }
 
+    /// Returns a mutable slice over all ports and their position.
+    pub fn ports_mut(&mut self) -> &mut [Port] {
+        &mut self.ports
+    }
+
     /// Returns a iterator over all routes.
-    pub fn routes(&self) -> impl Iterator<Item = (&Color, &Route)> {
+    pub fn routes(&self) -> impl Iterator<Item = (&RouteShape, &Route)> {
         self.routes.iter()
     }
 
     /// Returns a mutable iterator over all routes.
-    pub fn routes_mut(&mut self) -> impl Iterator<Item = (&Color, &mut Route)> {
+    pub fn routes_mut(&mut self) -> impl Iterator<Item = (&RouteShape, &mut Route)> {
         self.routes.iter_mut()
     }
 
@@ -58,7 +62,7 @@ impl World {
     /// Creates a new route (if non exists) and adds a new link between start and goal.
     pub fn add_route(
         &mut self,
-        color: Color,
+        color: RouteShape,
         start: Position,
         goal: Position,
         path: Vec<Waypoint>,
