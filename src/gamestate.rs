@@ -272,15 +272,6 @@ impl event::EventHandler for GameState {
             }
         }
 
-        // Draw all ships.
-        for (_, route) in self.world.routes() {
-            for ship in route.ships() {
-                // TODO: Must handle waypoints ending, and returning ships back.
-                self.sprite_drawer
-                    .draw_item(ctx, &self.config, ship, &(), true);
-            }
-        }
-
         // Draw route (id any) currently being created.
         if let Some(builder) = &self.route_builder {
             if let Some(waypoints) = builder.path() {
@@ -296,6 +287,15 @@ impl event::EventHandler for GameState {
         for port in self.world.ports() {
             self.sprite_drawer
                 .draw_item(ctx, &self.config, port, &self.world, true);
+        }
+
+        // Draw all ships.
+        for (_, route) in self.world.routes() {
+            for ship in route.ships() {
+                // TODO: Must handle waypoints ending, and returning ships back.
+                self.sprite_drawer
+                    .draw_item(ctx, &self.config, ship, &(), true);
+            }
         }
 
         // Draw shape selector.
