@@ -27,9 +27,10 @@ pub fn reachable(map: &[Tile], ports: &[Port], position: Position) -> Vec<Positi
 
 /// Finds the shortest path from start to goal using astar with
 /// manhattan distance heuristic.
-pub fn find_path(
+pub fn find_path<'a>(
     map: &[Tile],
     ports: &[Port],
+    waypoints: &Vec<Waypoint>,
     start: Position,
     goal: Position,
 ) -> Option<(i32, Vec<Position>)> {
@@ -62,9 +63,15 @@ pub fn find_path(
         // For each node we can reach, see if we can find a way with
         // a lower cost going through this node
         for neighbor in reachable(map, ports, position) {
+            // Add extra weight if already path exists here to avoid overlap if possible.
+            let next_weight =
+                weight + match waypoints.iter().any(|w| *w == Waypoint::from(position)) {
+                    true => 2,
+                    false => 1,
+                };
             let next = OrdPosition {
-                weight: weight + 1,
                 position: neighbor,
+                weight: next_weight,
             };
 
             // If so, add it to the frontier and continue
@@ -297,6 +304,7 @@ impl Route {
         &mut self,
         map: &[Tile],
         ports: &[Port],
+        waypoints: &Vec<Waypoint>,
         start: Position,
         end: Position,
         path: Vec<Waypoint>,
@@ -324,8 +332,8 @@ impl Route {
             .map(|i| {
                 let (curr_port, _) = self.paths[i];
                 let (next_port, _) = self.paths[i + 1];
-                let (_, route) =
-                    find_path(map, ports, curr_port, next_port).expect("Did not find valid route");
+                let (_, route) = find_path(map, ports, &waypoints, curr_port, next_port)
+                    .expect("Did not find valid route");
                 route.into_iter().map(Waypoint::from).collect::<Vec<_>>()
             }).collect::<Vec<_>>();
 

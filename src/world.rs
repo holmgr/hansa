@@ -67,8 +67,13 @@ impl World {
         goal: Position,
         path: Vec<Waypoint>,
     ) {
+        let waypoints = self
+            .routes
+            .values()
+            .flat_map(|r| r.waypoints().into_iter().cloned())
+            .collect::<Vec<_>>();
         let route = self.routes.entry(color).or_insert_with(Route::new);
-        route.add_link(&self.map, &self.ports, start, goal, path);
+        route.add_link(&self.map, &self.ports, &waypoints, start, goal, path);
     }
 
     /// Returns the tile at the given position.
@@ -90,7 +95,12 @@ impl World {
     /// Finds the shortest path from start to goal using astar with
     /// manhattan distance heuristic.
     pub fn route(&self, start: Position, goal: Position) -> Option<(i32, Vec<Position>)> {
-        find_path(&self.map, &self.ports, start, goal)
+        let waypoints = self
+            .routes
+            .values()
+            .flat_map(|r| r.waypoints().into_iter().cloned())
+            .collect::<Vec<_>>();
+        find_path(&self.map, &self.ports, &waypoints, start, goal)
     }
 }
 
