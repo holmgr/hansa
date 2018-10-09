@@ -3,6 +3,7 @@ use port::Port;
 use route::{find_path, reachable, Route, RouteShape, Waypoint};
 use ship::Shipyard;
 use std::{collections::HashMap, iter::FromIterator};
+use tally::Tally;
 use tile::Tile;
 
 /// Holds all information on the game world.
@@ -12,6 +13,7 @@ pub struct World {
     ports: Vec<Port>,
     routes: HashMap<RouteShape, Route>,
     shipyard: Shipyard,
+    tally: Tally,
 }
 
 impl World {
@@ -26,6 +28,7 @@ impl World {
             ports: Vec::from_iter(ports),
             routes: HashMap::new(),
             shipyard: Shipyard::new(),
+            tally: Tally::new(),
         }
     }
 
@@ -112,6 +115,7 @@ impl Default for World {
             ports: vec![],
             routes: HashMap::new(),
             shipyard: Shipyard::new(),
+            tally: Tally::new(),
         }
     }
 }
