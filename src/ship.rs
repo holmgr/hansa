@@ -4,6 +4,7 @@ use ggez::{
     timer::get_delta,
     Context,
 };
+use std::time::Duration;
 
 use config::Config;
 use draw::Drawable;
@@ -15,6 +16,7 @@ use world::World;
 /// A ship which transports resources between ports along a route.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ship {
+    docked: Duration,
     position: Point2,
     current_waypoint: Waypoint,
     /// Current path.
@@ -29,6 +31,7 @@ impl Ship {
     /// Creates a new ship.
     pub fn new(path: Vec<Waypoint>) -> Self {
         Ship {
+            docked: Duration::from_secs(0),
             current_waypoint: path[0],
             position: Point2::from(Position::from(path[0])),
             path,
@@ -98,46 +101,59 @@ impl<'a> Updatable<'a> for Ship {
     /// Note: The next path needs to be set if it is on the final waypoint,
     /// otherwise it can be omitted.
     fn update(&mut self, ctx: &Context, next_path: Option<Vec<Waypoint>>) {
-        let current_waypoint = Point2::from(Position::from(self.current_waypoint));
-        let next_waypoint = Point2::from(Position::from(self.next_waypoint().unwrap()));
-        let distance_to_next = na::distance(&self.position, &next_waypoint);
-        let delta = get_delta(ctx).as_secs() as f32 + get_delta(ctx).subsec_millis() as f32 / 1000.;
-
-        let mut translation = na::normalize(&(next_waypoint - current_waypoint))
-            * Self::SPEED
-            * delta
-            * match (self.is_arriving(), self.is_leaving()) {
-                (true, _) => distance_to_next.powf(1.3).max(0.2),
-                (_, true) => (1. - distance_to_next).powf(1.3).max(0.2),
-                (_, _) => 1.,
-            };
-
-        // Move to next waypoint.
-        if na::norm(&translation) >= distance_to_next {
-            self.current_waypoint = Waypoint::from(Position::from(next_waypoint));
-            self.position = next_waypoint;
-            let distance_remaining = na::norm(&translation) - distance_to_next;
-
-            let next_waypoint =
-                Point2::from(Position::from(match (self.next_waypoint(), next_path) {
-                    (Some(w), _) => w,
-                    (None, Some(ref nb)) if !nb.is_empty() => {
-                        // TODO: Ugly code due to empty last path.
-                        self.path = nb.clone();
-                        self.next_waypoint().unwrap()
-                    }
-                    (None, _) => {
-                        self.reverse = !self.reverse;
-                        self.next_waypoint()
-                            .expect("Could not find next waypoint after turning around")
-                    }
-                }));
+        if self.docked.subsec_millis() == 0 {
             let current_waypoint = Point2::from(Position::from(self.current_waypoint));
-            let next_waypoint = Point2::from(Position::from(next_waypoint));
+            let next_waypoint = Point2::from(Position::from(self.next_waypoint().unwrap()));
+            let distance_to_next = na::distance(&self.position, &next_waypoint);
+            let delta =
+                get_delta(ctx).as_secs() as f32 + get_delta(ctx).subsec_millis() as f32 / 1000.;
 
-            translation = na::normalize(&(next_waypoint - current_waypoint)) * distance_remaining;
+            let mut translation = na::normalize(&(next_waypoint - current_waypoint))
+                * Self::SPEED
+                * delta
+                * match (self.is_arriving(), self.is_leaving()) {
+                    (true, _) => distance_to_next.powf(1.3).max(0.2),
+                    (_, true) => (1. - distance_to_next).powf(1.3).max(0.2),
+                    (_, _) => 1.,
+                };
+
+            // Move to next waypoint.
+            if na::norm(&translation) >= distance_to_next {
+                self.current_waypoint = Waypoint::from(Position::from(next_waypoint));
+                self.position = next_waypoint;
+                let distance_remaining = na::norm(&translation) - distance_to_next;
+
+                if let Some(w) = self.next_waypoint() {
+                    let current_waypoint = next_waypoint;
+                    let next_waypoint = Point2::from(Position::from(w));
+
+                    translation =
+                        na::normalize(&(next_waypoint - current_waypoint)) * distance_remaining;
+                } else {
+                    match next_path {
+                        Some(ref nb) if !nb.is_empty() => {
+                            // TODO: Ugly code due to empty last path.
+                            self.path = nb.clone();
+                            self.next_waypoint().unwrap()
+                        }
+                        _ => {
+                            self.reverse = !self.reverse;
+                            self.next_waypoint()
+                                .expect("Could not find next waypoint after turning around")
+                        }
+                    };
+                    // Set dock timer.
+                    self.docked = Duration::from_millis(999);
+                }
+            }
+            self.position += translation;
+        } else {
+            // Reduce time remaining, setting to zero if underflow etc.
+            self.docked = self
+                .docked
+                .checked_sub(get_delta(ctx))
+                .unwrap_or(Duration::from_millis(0));
         }
-        self.position += translation;
     }
 }
 
