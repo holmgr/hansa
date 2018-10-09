@@ -100,13 +100,13 @@ pub struct Waypoint(Position);
 impl<'a> Drawable<'a> for Waypoint {
     type Data = RouteShape;
 
-    fn draw(&self, shape: &RouteShape) -> DrawParam {
+    fn draw(&self, shape: &RouteShape) -> Vec<DrawParam> {
         let x_offset = match shape {
             RouteShape::Plus => 0.,
             RouteShape::Cross => 1.,
             RouteShape::Star => 2.,
         } * Self::TILE_OFFSET;
-        DrawParam {
+        vec![DrawParam {
             src: Rect::new(
                 x_offset,
                 3. * Self::TILE_OFFSET,
@@ -116,7 +116,7 @@ impl<'a> Drawable<'a> for Waypoint {
             dest: Point2::from(self.0),
             color: Some(ggezColor::from_rgb(0, 0, 0)), // TODO: Change placeholder color.
             ..Default::default()
-        }
+        }]
     }
 }
 
@@ -150,7 +150,7 @@ impl RouteShape {
 impl<'a> Drawable<'a> for RouteShape {
     type Data = (&'a Config, &'a ShapeSelector);
 
-    fn draw(&self, data: &(&Config, &ShapeSelector)) -> DrawParam {
+    fn draw(&self, data: &(&Config, &ShapeSelector)) -> Vec<DrawParam> {
         let (config, selector) = data;
         let index = selector.find(*self).unwrap();
 
@@ -169,7 +169,7 @@ impl<'a> Drawable<'a> for RouteShape {
             RouteShape::Star => 2.,
         } * Self::TILE_OFFSET;
 
-        DrawParam {
+        vec![DrawParam {
             src: Rect::new(
                 x_offset,
                 3. * Self::TILE_SIZE,
@@ -184,7 +184,7 @@ impl<'a> Drawable<'a> for RouteShape {
             offset: Point2::new(0.5, 0.5),
             color: Some(ggezColor::from_rgb(0, 0, 0)), // TODO: Change placeholder color.
             ..Default::default()
-        }
+        }]
     }
 }
 

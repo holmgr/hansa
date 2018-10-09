@@ -1,9 +1,9 @@
 #[macro_use]
 extern crate serde_derive;
 extern crate ggez;
+extern crate rand;
 extern crate serde;
 extern crate serde_json;
-extern crate rand;
 use ggez::{conf, event, Context};
 use std::{env, path::PathBuf};
 

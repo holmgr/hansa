@@ -49,7 +49,7 @@ impl Tile {
 impl<'a> Drawable<'a> for Tile {
     type Data = World;
 
-    fn draw(&self, world: &World) -> DrawParam {
+    fn draw(&self, world: &World) -> Vec<DrawParam> {
         let neighbors: Vec<Option<TileKind>> = self
             .neighbors()
             .iter()
@@ -111,10 +111,10 @@ impl<'a> Drawable<'a> for Tile {
         };
 
         let dest = Point2::from(self.position);
-        DrawParam {
+        vec![DrawParam {
             src,
             dest,
             ..Default::default()
-        }
+        }]
     }
 }

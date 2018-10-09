@@ -18,7 +18,7 @@ pub trait Drawable<'a> {
     type Data;
 
     /// Returns a drawparam (sprite) representing this type.
-    fn draw(&self, data: &'a Self::Data) -> DrawParam;
+    fn draw(&self, data: &'a Self::Data) -> Vec<DrawParam>;
 }
 
 /// A cached drawer which keeps track of and draws indiviual drawawble items,
@@ -45,28 +45,28 @@ impl SpriteDrawer {
         data: &'a T::Data,
         grid_scaling: bool,
     ) {
-        let mut param = item.draw(data);
+        for mut param in item.draw(data) {
+            // Scale the param to so it matches grid size screen.
+            let (window_width, _) = get_drawable_size(ctx);
+            let cell_size = (config.scaling * window_width) as f32 / config.grid_width as f32;
 
-        // Scale the param to so it matches grid size screen.
-        let (window_width, _) = get_drawable_size(ctx);
-        let cell_size = (config.scaling * window_width) as f32 / config.grid_width as f32;
-
-        // TODO: Move magic constant here.
-        param.scale = Point2::new(
-            param.scale.x * cell_size / 512.,
-            param.scale.y * cell_size / 512.,
-        );
-
-        // Scale to grid coordinates only if needed.
-        if grid_scaling {
-            param.dest = Point2::new(param.dest.x * cell_size, param.dest.y * cell_size);
-        } else {
-            param.dest = Point2::new(
-                param.dest.x * config.scaling as f32,
-                param.dest.y * config.scaling as f32,
+            // TODO: Move magic constant here.
+            param.scale = Point2::new(
+                param.scale.x * cell_size / 512.,
+                param.scale.y * cell_size / 512.,
             );
+
+            // Scale to grid coordinates only if needed.
+            if grid_scaling {
+                param.dest = Point2::new(param.dest.x * cell_size, param.dest.y * cell_size);
+            } else {
+                param.dest = Point2::new(
+                    param.dest.x * config.scaling as f32,
+                    param.dest.y * config.scaling as f32,
+                );
+            }
+            self.0.add(param);
         }
-        self.0.add(param);
     }
 
     /// Draws all sprites in the sprite drawer on the screen.

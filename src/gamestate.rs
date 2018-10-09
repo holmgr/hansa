@@ -88,7 +88,7 @@ impl GameState {
             route_builder: None,
             ship_builder: None,
             shape_selector: ShapeSelector::new(),
-            rng: thread_rng()
+            rng: thread_rng(),
         };
         Ok(state)
     }
