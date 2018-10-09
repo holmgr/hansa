@@ -1,9 +1,9 @@
 use ggez::{
     graphics::{Color as ggezColor, DrawParam, Point2, Rect},
+    nalgebra as na,
     timer::get_delta,
     Context,
 };
-use std::time::Duration;
 
 use config::Config;
 use draw::Drawable;
@@ -13,11 +13,10 @@ use update::Updatable;
 use world::World;
 
 /// A ship which transports resources between ports along a route.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Ship {
-    /// Duration since arriving at current position.
-    duration: Duration,
-    position: Waypoint,
+    position: Point2,
+    current_waypoint: Waypoint,
     /// Current path.
     path: Vec<Waypoint>,
     /// If we are on the return trip or not.
@@ -30,8 +29,8 @@ impl Ship {
     /// Creates a new ship.
     pub fn new(path: Vec<Waypoint>) -> Self {
         Ship {
-            duration: Duration::new(0, 0),
-            position: path[0],
+            current_waypoint: path[0],
+            position: Point2::from(Position::from(path[0])),
             path,
             reverse: false,
         }
@@ -39,7 +38,7 @@ impl Ship {
 
     /// Returns the ship's current position.
     pub fn position(&self) -> Waypoint {
-        self.position
+        self.current_waypoint
     }
 
     /// Returns whether the ship currently is on its return trip.
@@ -53,12 +52,26 @@ impl Ship {
         let current_position = self
             .path
             .iter()
-            .position(|w| *w == self.position)
+            .position(|w| *w == self.current_waypoint)
             .expect("Current position not on path");
         if self.reverse {
             self.path.get(current_position - 1).cloned()
         } else {
             self.path.get(current_position + 1).cloned()
+        }
+    }
+
+    /// Returns true if the next waypoint is the final waypoint on the path.
+    pub fn is_arriving(&self) -> bool {
+        let current_position = self
+            .path
+            .iter()
+            .position(|w| *w == self.current_waypoint)
+            .expect("Current position not on path");
+        if self.reverse {
+            self.path.get(current_position - 2).is_none()
+        } else {
+            self.path.get(current_position + 2).is_none()
         }
     }
 }
@@ -71,40 +84,39 @@ impl<'a> Updatable<'a> for Ship {
     /// Note: The next path needs to be set if it is on the final waypoint,
     /// otherwise it can be omitted.
     fn update(&mut self, ctx: &Context, next_path: Option<Vec<Waypoint>>) {
-        let current_position = Position::from(self.position);
+        let current_waypoint = Point2::from(Position::from(self.current_waypoint));
+        let next_waypoint = Point2::from(Position::from(self.next_waypoint().unwrap()));
+        let distance_to_next = na::distance(&self.position, &next_waypoint);
+        let delta = get_delta(ctx).as_secs() as f32 + get_delta(ctx).subsec_millis() as f32 / 1000.;
+        let mut translation =
+            na::normalize(&(next_waypoint - current_waypoint)) * Self::SPEED * delta;
 
-        if let Some(next_path) = next_path {
-            // TODO: Ugly code due to empty last path.
-            if !next_path.is_empty() {
-                self.path = next_path;
-            }
+        // Move to next waypoint.
+        if na::norm(&translation) >= distance_to_next {
+            self.current_waypoint = Waypoint::from(Position::from(next_waypoint));
+            self.position = next_waypoint;
+            let distance_remaining = na::norm(&translation) - distance_to_next;
+
+            let next_waypoint =
+                Point2::from(Position::from(match (self.next_waypoint(), next_path) {
+                    (Some(w), _) => w,
+                    (None, Some(ref nb)) if !nb.is_empty() => {
+                        // TODO: Ugly code due to empty last path.
+                        self.path = nb.clone();
+                        self.next_waypoint().unwrap()
+                    }
+                    (None, _) => {
+                        self.reverse = !self.reverse;
+                        self.next_waypoint()
+                            .expect("Could not find next waypoint after turning around")
+                    }
+                }));
+            let current_waypoint = Point2::from(Position::from(self.current_waypoint));
+            let next_waypoint = Point2::from(Position::from(next_waypoint));
+
+            translation = na::normalize(&(next_waypoint - current_waypoint)) * distance_remaining;
         }
-        let next_position = Position::from(match self.next_waypoint() {
-            Some(w) => w,
-            None => {
-                self.reverse = !self.reverse;
-                if self.next_waypoint().is_none() {
-                    println!("{:#?}", self.path.iter().rev());
-                }
-                self.next_waypoint()
-                    .expect("Could not find next position after turning around")
-            }
-        });
-
-        let distance_to_next = current_position.distance(next_position);
-        let delta_since_move = get_delta(ctx) + self.duration;
-
-        // Move to next ewaypoint.
-        if (delta_since_move.as_secs() as u32 * 1000 + delta_since_move.subsec_millis()) as f32
-            * Self::SPEED
-            / 1000.
-            >= distance_to_next
-        {
-            self.position = Waypoint::from(next_position);
-            self.duration = Duration::new(0, 0); // Does not consider if we over reach!!!
-        } else {
-            self.duration = delta_since_move;
-        }
+        self.position += translation;
     }
 }
 
@@ -112,38 +124,13 @@ impl<'a> Drawable<'a> for Ship {
     type Data = (); // Mouse position
 
     fn draw(&self, _: &()) -> Vec<DrawParam> {
-        let current_position = Position::from(self.position);
-        let (mut interpolated_position, rotation) = match self.next_waypoint() {
-            Some(p) => {
-                let next_position = Position::from(p);
-                let base_translation = next_position - current_position;
-                let magnitute = base_translation.distance_origo();
-                let distance_traveled = (self.duration.as_secs() as u32 * 1000
-                    + self.duration.subsec_millis()) as f32
-                    * Self::SPEED
-                    / 1000.;
-                //println!("Distance traveled: {}, magnitude: {}", distance_traveled, magnitute);
-                let translate_factor = distance_traveled / magnitute;
-                //println!("Translate factor: {}", translate_factor);
-
-                (
-                    Point2::new(
-                        current_position.x as f32 + (base_translation.x as f32 * translate_factor),
-                        current_position.y as f32 + (base_translation.y as f32 * translate_factor),
-                    ),
-                    base_translation.direction(),
-                )
-            }
-            //println!("Drawing ship on position: {}", interpolated_position);
-            None => {
-                println!("No next position when drawing, fallback to same position");
-                (Point2::from(current_position), 0.)
-            }
-        };
+        let current_waypoint = Point2::from(Position::from(self.current_waypoint));
+        let base_translation = na::normalize(&(self.position - current_waypoint));
+        let rotation = (base_translation.y / base_translation.x).atan();
 
         // Add half cell to offset for rotation.
-        interpolated_position.coords.x += 0.5;
-        interpolated_position.coords.y += 0.5;
+        let display_position =
+            Point2::new(self.position.coords.x + 0.5, self.position.coords.y + 0.5);
 
         vec![DrawParam {
             src: Rect::new(
@@ -152,7 +139,7 @@ impl<'a> Drawable<'a> for Ship {
                 Self::TILE_SIZE,
                 Self::TILE_SIZE,
             ),
-            dest: interpolated_position,
+            dest: display_position,
             rotation,
             offset: Point2::new(0.5, 0.5),
             color: Some(ggezColor::from_rgb(69, 55, 52)),

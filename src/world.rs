@@ -6,7 +6,7 @@ use std::{collections::HashMap, iter::FromIterator};
 use tile::Tile;
 
 /// Holds all information on the game world.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct World {
     map: Vec<Tile>,
     ports: Vec<Port>,
