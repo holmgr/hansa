@@ -74,6 +74,20 @@ impl Ship {
             self.path.get(current_position + 2).is_none()
         }
     }
+
+    /// Returns true if the current waypoint is the first waypoint on the path.
+    pub fn is_leaving(&self) -> bool {
+        let current_position = self
+            .path
+            .iter()
+            .position(|w| *w == self.current_waypoint)
+            .expect("Current position not on path");
+        if self.reverse {
+            current_position == self.path.len() - 1
+        } else {
+            current_position == 0
+        }
+    }
 }
 
 impl<'a> Updatable<'a> for Ship {
@@ -88,8 +102,15 @@ impl<'a> Updatable<'a> for Ship {
         let next_waypoint = Point2::from(Position::from(self.next_waypoint().unwrap()));
         let distance_to_next = na::distance(&self.position, &next_waypoint);
         let delta = get_delta(ctx).as_secs() as f32 + get_delta(ctx).subsec_millis() as f32 / 1000.;
-        let mut translation =
-            na::normalize(&(next_waypoint - current_waypoint)) * Self::SPEED * delta;
+
+        let mut translation = na::normalize(&(next_waypoint - current_waypoint))
+            * Self::SPEED
+            * delta
+            * match (self.is_arriving(), self.is_leaving()) {
+                (true, _) => distance_to_next.powf(1.3).max(0.2),
+                (_, true) => (1. - distance_to_next).powf(1.3).max(0.2),
+                (_, _) => 1.,
+            };
 
         // Move to next waypoint.
         if na::norm(&translation) >= distance_to_next {
