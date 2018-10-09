@@ -1,4 +1,5 @@
 use ggez::graphics::{DrawParam, Point2, Rect};
+use rand::{seq::sample_slice, Rng};
 
 use color::Color;
 use draw::Drawable;
@@ -14,11 +15,13 @@ pub struct Port {
 
 impl Port {
     /// Creates a new port.
-    pub fn new(position: Position) -> Self {
+    pub fn new<R: Rng>(position: Position, gen: &mut R) -> Self {
+        let initial_colors = sample_slice(gen, &Color::values(), 2);
+        println!("Got intial colors: {:#?} at {:?}", initial_colors, position);
         Port { 
             position,
-            import: Color::Red,
-            export: Color::Purple
+            import: initial_colors[0],
+            export: initial_colors[1]
         }
     }
 

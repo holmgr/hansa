@@ -1,6 +1,7 @@
 use ggez::{
     event, graphics, mouse, timer, {Context, GameResult},
 };
+use rand::prelude::*;
 use std::{
     io::{BufRead, BufReader, Read},
     mem,
@@ -20,7 +21,7 @@ const TILESET_PATH: &str = "/tileset.png";
 const MAP_PATH: &str = "/map.ppm";
 
 /// Load world from image file, mapping RGB to tiles.
-fn load_world(ctx: &mut Context, config: &Config) -> World {
+fn load_world<R: Rng>(ctx: &mut Context, config: &Config, color_sampler: &mut R) -> World {
     let mut map_file = ctx.filesystem.open(MAP_PATH).unwrap();
     let mut header_buffer = [0; 58];
     map_file.read_exact(&mut header_buffer).unwrap();
@@ -47,7 +48,7 @@ fn load_world(ctx: &mut Context, config: &Config) -> World {
             match colors {
                 [0, 0, 255] => map.push(Tile::new(position, TileKind::Water)),
                 [0, 0, 0] => {
-                    ports.push(Port::new(position));
+                    ports.push(Port::new(position, color_sampler));
                     map.push(Tile::new(position, TileKind::Land));
                 }
                 _ => map.push(Tile::new(position, TileKind::Land)),
@@ -65,13 +66,15 @@ pub struct GameState {
     route_builder: Option<RouteBuilder>,
     ship_builder: Option<ShipBuilder>,
     shape_selector: ShapeSelector,
+    rng: ThreadRng,
 }
 
 impl GameState {
     /// Creates a new game state in Play mode.
     pub fn new(ctx: &mut Context, config: Config) -> GameResult<Self> {
+        let mut rng = thread_rng();
         // Load game world from file.
-        let world = load_world(ctx, &config);
+        let world = load_world(ctx, &config, &mut rng);
 
         // Load spritebatch for effective drawing of sprites.
         let image = graphics::Image::new(ctx, TILESET_PATH)?;
@@ -85,6 +88,7 @@ impl GameState {
             route_builder: None,
             ship_builder: None,
             shape_selector: ShapeSelector::new(),
+            rng: thread_rng()
         };
         Ok(state)
     }
