@@ -97,26 +97,33 @@ impl GameState {
 impl event::EventHandler for GameState {
     /// Updates the game state.
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
-        // Update all ships.
-        for (_, route) in self.world.routes_mut() {
-            let next_paths = route
-                .ships()
-                .map(|s| (s.reverse(), s.position(), s.next_waypoint()))
-                .map(|(reverse, curr, next)| {
-                    if next.is_none() && !reverse {
-                        route.next_path(Position::from(curr))
-                    } else if next.is_none() && reverse {
-                        route.previous_path(Position::from(curr))
-                    } else {
-                        None
-                    }
-                }).collect::<Vec<_>>();
-            next_paths
-                .into_iter()
-                .zip(route.ships_mut())
-                .for_each(|(path, ship)| {
-                    ship.update(ctx, path);
-                });
+        while timer::check_update_time(ctx, 60) {
+            // Update all ships.
+            for (_, route) in self.world.routes_mut() {
+                let next_paths = route
+                    .ships()
+                    .map(|s| (s.reverse(), s.position(), s.next_waypoint()))
+                    .map(|(reverse, curr, next)| {
+                        if next.is_none() && !reverse {
+                            route.next_path(Position::from(curr))
+                        } else if next.is_none() && reverse {
+                            route.previous_path(Position::from(curr))
+                        } else {
+                            None
+                        }
+                    }).collect::<Vec<_>>();
+                next_paths
+                    .into_iter()
+                    .zip(route.ships_mut())
+                    .for_each(|(path, ship)| {
+                        ship.update(ctx, path);
+                    });
+            }
+
+            // Update all ports.
+            for port in self.world.ports_mut() {
+                port.update(ctx, &mut self.rng);
+            }
         }
         Ok(())
     }

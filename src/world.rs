@@ -39,6 +39,11 @@ impl World {
         &self.ports
     }
 
+    /// Returns a mutable slice over all ports and their position.
+    pub fn ports_mut(&mut self) -> &mut [Port] {
+        &mut self.ports
+    }
+
     /// Returns a iterator over all routes.
     pub fn routes(&self) -> impl Iterator<Item = (&RouteShape, &Route)> {
         self.routes.iter()

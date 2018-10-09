@@ -63,7 +63,7 @@ impl Ship {
     }
 }
 
-impl Updatable for Ship {
+impl<'a> Updatable<'a> for Ship {
     type Data = Option<Vec<Waypoint>>;
 
     /// Updates the internal duration since last waypoint, moving to new

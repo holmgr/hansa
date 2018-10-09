@@ -3,9 +3,7 @@
 pub enum Color {
     Blue,
     Green,
-    Purple,
     Red,
-    Yellow,
 }
 
 impl Color {
@@ -14,20 +12,12 @@ impl Color {
         match self {
             Color::Blue => (72, 133, 237),
             Color::Green => (60, 186, 88),
-            Color::Purple => (88, 42, 114),
             Color::Red => (219, 50, 54),
-            Color::Yellow => (244, 194, 15),
         }
     }
 
     /// Returns all color variants.
     pub fn values() -> Vec<Color> {
-        vec![
-            Color::Blue,
-            Color::Green,
-            Color::Purple,
-            Color::Red,
-            Color::Yellow,
-        ]
+        vec![Color::Blue, Color::Green, Color::Red]
     }
 }
