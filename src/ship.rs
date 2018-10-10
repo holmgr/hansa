@@ -32,11 +32,11 @@ impl Ship {
     const SPEED: f32 = 5.;
 
     /// Creates a new ship.
-    pub fn new(path: Vec<Waypoint>) -> Self {
+    pub fn new(position: Waypoint, path: Vec<Waypoint>) -> Self {
         Ship {
             docked: Duration::from_millis(0),
-            current_waypoint: path[0],
-            position: Point2::from(Position::from(path[0])),
+            current_waypoint: position,
+            position: Point2::from(Position::from(position)),
             path,
             reverse: false,
             cargo: None,
@@ -296,8 +296,8 @@ impl ShipBuilder {
         let waypoint = Waypoint::from(position);
         if let Some((_, route)) = world.routes_mut().find(|(_, r)| r.contains(waypoint)) {
             println!("Placed ship on route!");
-            let initial_path = route.initial_path();
-            route.add_ship(Ship::new(initial_path));
+            let initial_path = route.path(waypoint);
+            route.add_ship(Ship::new(waypoint, initial_path));
             None
         } else {
             Some(self)

@@ -281,6 +281,18 @@ impl Route {
         path.clone()
     }
 
+    /// Returns the path which contains the given waypoint.
+    /// If given a port position it will return the path leading to that one.
+    pub fn path(&self, waypoint: Waypoint) -> Vec<Waypoint> {
+        let (_, path) = self
+            .paths
+            .iter()
+            .cloned()
+            .find(|(_, path)| path.iter().any(|w| *w == waypoint))
+            .unwrap();
+        path
+    }
+
     /// Returns the next path after the given port location, return None if last.
     pub fn next_path(&self, port: Position) -> Option<Vec<Waypoint>> {
         self.paths
