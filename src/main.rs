@@ -15,6 +15,7 @@ pub mod geometry;
 pub mod port;
 pub mod route;
 pub mod ship;
+pub mod tally;
 pub mod tile;
 pub mod update;
 pub mod world;

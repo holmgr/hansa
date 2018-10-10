@@ -98,6 +98,15 @@ impl event::EventHandler for GameState {
     /// Updates the game state.
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         // Update all ships.
+
+        let tradings = self
+            .world
+            .ports()
+            .iter()
+            .map(|p| (p.position(), p.import(), p.export()))
+            .collect::<Vec<_>>();
+        let mut new_colors = vec![];
+
         for (_, route) in self.world.routes_mut() {
             let next_paths = route
                 .ships()
@@ -117,7 +126,29 @@ impl event::EventHandler for GameState {
                 .for_each(|(path, ship)| {
                     ship.update(ctx, path);
                 });
+
+            for ship in route.ships_mut() {
+                if ship.is_docked() {
+                    let (_, import, export) = tradings
+                        .iter()
+                        .find(|(p, _, _)| *p == Position::from(ship.position()))
+                        .expect("No port at ship dock");
+                    if let Some(cargo) = ship.try_unload() {
+                        // Unload ship cargo, adding to score if it matches port import.
+                        if cargo == *import {
+                            new_colors.push(cargo);
+                        }
+                    } else {
+                        ship.try_load(*export);
+                    }
+                }
+            }
         }
+
+        // Add score for all colors collected.
+        new_colors
+            .into_iter()
+            .for_each(|c| self.world.tally_mut().update(c));
 
         // Update all ports.
         for port in self.world.ports_mut() {

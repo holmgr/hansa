@@ -53,7 +53,7 @@ impl<'a> Updatable<'a> for Port {
         //let seconds_passed = get_time_since_start(ctx).as_secs();
         let ticks = get_ticks(ctx);
         // TODO: Move magic constant for color switching.
-        if ticks % 100 == 0 && gen.gen_bool(1. / 10.) {
+        if ticks % 1000 == 0 && gen.gen_bool(1. / 10.) {
             // TODO: Make swtiching more elegant and handle cases where we end up with no red etc.
             let new_colors = sample_slice(gen, &Color::values(), 2);
             self.import = new_colors[0];
