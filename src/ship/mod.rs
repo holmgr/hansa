@@ -14,6 +14,12 @@ use route::Waypoint;
 use update::Updatable;
 use world::World;
 
+mod shipbuilder;
+mod shipyard;
+
+pub use self::shipbuilder::ShipBuilder;
+pub use self::shipyard::Shipyard;
+
 /// A ship which transports resources between ports along a route.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ship {
@@ -211,114 +217,6 @@ impl<'a> Drawable<'a> for Ship {
             rotation,
             offset: Point2::new(0.5, 0.5),
             color: Some(ggezColor::from_rgb(r, g, b)),
-            ..Default::default()
-        }]
-    }
-}
-
-/// Holds all unplaced 'ships' and manages of drawing UI element for ship selection.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct Shipyard {
-    ships: usize,
-}
-
-impl Shipyard {
-    /// Create a new shipyard.
-    pub fn new() -> Self {
-        Shipyard {
-            ships: 3, // TODO: Make this scale with progress.
-        }
-    }
-
-    /// Returns the number of available ships.
-    pub fn available(&self) -> usize {
-        self.ships
-    }
-
-    /// Return if there are any ships available.
-    pub fn is_available(&self) -> bool {
-        self.ships > 0
-    }
-
-    /// Returns a shipbuilder if not capped on ships.
-    pub fn build(&mut self) -> Option<ShipBuilder> {
-        if self.is_available() {
-            self.ships -= 1;
-            Some(ShipBuilder::new())
-        } else {
-            None
-        }
-    }
-
-    /// Returns a builder to the shipyard.
-    pub fn add_builder(&mut self, builder: ShipBuilder) {
-        self.ships += 1;
-    }
-}
-
-impl<'a> Drawable<'a> for Shipyard {
-    type Data = Config;
-
-    fn draw(&self, data: &Config) -> Vec<DrawParam> {
-        let x_offset = (data.grid_width / 2) as f32;
-        let y_offset = data.grid_height as f32 + 3.;
-        vec![DrawParam {
-            src: Rect::new(
-                3. * Self::TILE_SIZE,
-                2. * Self::TILE_SIZE,
-                Self::TILE_SIZE,
-                Self::TILE_SIZE,
-            ),
-            dest: Point2::new(x_offset, y_offset),
-            color: Some(ggezColor::from_rgb(69, 55, 52)),
-            offset: Point2::new(0.5, 0.5),
-            ..Default::default()
-        }]
-    }
-}
-
-/// Manages the placement of ships on routes.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct ShipBuilder;
-
-impl ShipBuilder {
-    /// Create a new ship builder.
-    pub fn new() -> Self {
-        ShipBuilder {}
-    }
-
-    /// Attempts to place a ship at the given position, consuming the ship builder.
-    /// Returns the builder if it failed.
-    pub fn try_place(self, position: Position, world: &mut World) -> Option<ShipBuilder> {
-        // TODO: Implement placement on the given possition if it exists a
-        // valid path there.
-
-        let waypoint = Waypoint::from(position);
-        if let Some((_, route)) = world.routes_mut().find(|(_, r)| r.contains(waypoint)) {
-            println!("Placed ship on route!");
-            let initial_path = route.path(waypoint);
-            route.add_ship(Ship::new(waypoint, initial_path));
-            None
-        } else {
-            Some(self)
-        }
-    }
-}
-
-impl<'a> Drawable<'a> for ShipBuilder {
-    type Data = Point2; // Mouse position
-
-    fn draw(&self, mouse: &Point2) -> Vec<DrawParam> {
-        vec![DrawParam {
-            src: Rect::new(
-                3. * Self::TILE_SIZE,
-                2. * Self::TILE_SIZE,
-                Self::TILE_SIZE,
-                Self::TILE_SIZE,
-            ),
-            dest: Point2::new(mouse.coords.x, mouse.coords.y),
-            offset: Point2::new(0.5, 0.5),
-            color: Some(ggezColor::from_rgb(69, 55, 52)),
             ..Default::default()
         }]
     }
