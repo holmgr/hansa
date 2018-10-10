@@ -36,11 +36,16 @@ impl Tally {
 
     /// Increments the tally for the given color.
     pub fn update(&mut self, color: Color) {
-        let (_, amount) = self
-            .collected
-            .iter_mut()
-            .find(|(c, _)| *c == color)
-            .expect("Tally for color not found");
-        *amount += 1;
+        {
+            let (_, amount) = self
+                .collected
+                .iter_mut()
+                .find(|(c, _)| *c == color)
+                .expect("Tally for color not found");
+            *amount += 1;
+        }
+
+        // TODO: Remove this pln.
+        println!("Tally is now: {:#?}", self.collected);
     }
 }

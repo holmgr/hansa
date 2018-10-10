@@ -6,6 +6,7 @@ use ggez::{
 };
 use std::time::Duration;
 
+use color::Color;
 use config::Config;
 use draw::Drawable;
 use geometry::Position;
@@ -23,6 +24,8 @@ pub struct Ship {
     path: Vec<Waypoint>,
     /// If we are on the return trip or not.
     reverse: bool,
+    /// Color currently being carried from the given port.
+    cargo: Option<(Waypoint, Color)>,
 }
 
 impl Ship {
@@ -31,11 +34,12 @@ impl Ship {
     /// Creates a new ship.
     pub fn new(path: Vec<Waypoint>) -> Self {
         Ship {
-            docked: Duration::from_secs(0),
+            docked: Duration::from_millis(0),
             current_waypoint: path[0],
             position: Point2::from(Position::from(path[0])),
             path,
             reverse: false,
+            cargo: None,
         }
     }
 
@@ -62,6 +66,28 @@ impl Ship {
         } else {
             self.path.get(current_position + 1).cloned()
         }
+    }
+
+    /// Returns whether the ships is currently docked.
+    pub fn is_docked(&self) -> bool {
+        self.docked.subsec_millis() > 0
+    }
+
+    /// Attempts to unload the current cargo if any.
+    pub fn try_unload(&mut self) -> Option<Color> {
+        let tmp = match self.cargo {
+            Some((w, c)) if w != self.current_waypoint => Some(c),
+            _ => None,
+        };
+        if tmp.is_some() {
+            self.cargo = None;
+        }
+        tmp
+    }
+
+    /// Attempts to load the given color as cargo, doing nothing if already loaded.
+    pub fn try_load(&mut self, color: Color) {
+        self.cargo = self.cargo.or_else(|| Some((self.current_waypoint, color)));
     }
 
     /// Returns true if the next waypoint is the final waypoint on the path.
@@ -101,7 +127,7 @@ impl<'a> Updatable<'a> for Ship {
     /// Note: The next path needs to be set if it is on the final waypoint,
     /// otherwise it can be omitted.
     fn update(&mut self, ctx: &Context, next_path: Option<Vec<Waypoint>>) {
-        if self.docked.subsec_millis() == 0 {
+        if !self.is_docked() {
             let current_waypoint = Point2::from(Position::from(self.current_waypoint));
             let next_waypoint = Point2::from(Position::from(self.next_waypoint().unwrap()));
             let distance_to_next = na::distance(&self.position, &next_waypoint);
@@ -169,6 +195,11 @@ impl<'a> Drawable<'a> for Ship {
         let display_position =
             Point2::new(self.position.coords.x + 0.5, self.position.coords.y + 0.5);
 
+        let (r, g, b) = match self.cargo {
+            Some((_, color)) => color.rgb(),
+            None => (69, 55, 52),
+        };
+
         vec![DrawParam {
             src: Rect::new(
                 3. * Self::TILE_SIZE,
@@ -179,7 +210,7 @@ impl<'a> Drawable<'a> for Ship {
             dest: display_position,
             rotation,
             offset: Point2::new(0.5, 0.5),
-            color: Some(ggezColor::from_rgb(69, 55, 52)),
+            color: Some(ggezColor::from_rgb(r, g, b)),
             ..Default::default()
         }]
     }

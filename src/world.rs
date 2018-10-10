@@ -32,6 +32,11 @@ impl World {
         }
     }
 
+    /// Returns a mutable reference to the tally.
+    pub fn tally_mut(&mut self) -> &mut Tally {
+        &mut self.tally
+    }
+
     /// Returns a slice over all map tiles and their position.
     pub fn tiles(&self) -> &[Tile] {
         &self.map
