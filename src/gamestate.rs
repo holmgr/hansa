@@ -59,6 +59,7 @@ fn load_world<R: Rng>(ctx: &mut Context, config: &Config, color_sampler: &mut R)
 
 /// Handles and holds all game information.
 pub struct GameState {
+    font: graphics::Font,
     config: Config,
     frames: usize,
     sprite_drawer: SpriteDrawer,
@@ -81,6 +82,8 @@ impl GameState {
         let sprite_drawer = SpriteDrawer::new(image);
 
         let state = GameState {
+            font: graphics::Font::new(ctx, "/RobotoMono-Regular.ttf", 48)
+                .expect("Failed to load font"),
             config,
             frames: 0,
             sprite_drawer,
@@ -360,6 +363,12 @@ impl event::EventHandler for GameState {
         // Draw to screen.
         self.sprite_drawer.paint(ctx, &self.config)?;
 
+        // Draw tally.
+        self.world
+            .tally_mut()
+            .paint(&self.font, ctx, &self.config)?;
+
+        graphics::present(ctx);
         self.frames += 1;
         // And yield the timeslice
         // This tells the OS that we're done using the CPU but it should

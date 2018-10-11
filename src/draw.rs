@@ -1,7 +1,7 @@
 use ggez::{
     graphics::{
-        clear, draw_ex, get_drawable_size, present, set_background_color, spritebatch::SpriteBatch,
-        Color, DrawParam, Image, Point2,
+        clear, draw_ex, get_drawable_size, set_background_color, spritebatch::SpriteBatch, Color,
+        DrawParam, Image, Point2,
     },
     Context, GameResult,
 };
@@ -83,7 +83,6 @@ impl SpriteDrawer {
                 ..Default::default()
             },
         )?;
-        present(ctx);
 
         Ok(())
     }

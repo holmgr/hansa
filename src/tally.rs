@@ -1,6 +1,14 @@
+use ggez::{
+    graphics::{
+        circle, draw, get_drawable_size, set_color, Color as ggezColor, DrawMode, Font, Point2,
+        Text,
+    },
+    Context, GameResult,
+};
 use std::iter::FromIterator;
 
 use color::Color;
+use config::Config;
 
 /// Keeps track of the amount of each color collected.
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -47,5 +55,45 @@ impl Tally {
 
         // TODO: Remove this pln.
         println!("Tally is now: {:#?}", self.collected);
+    }
+
+    /// Draws the current tally on screen.
+    /// Does not implement Drawable since it is unable to be drawn using a
+    /// spritebatch.
+    pub fn paint(&self, font: &Font, ctx: &mut Context, _config: &Config) -> GameResult<()> {
+        // TODO: Properly ugly code with loads of magic constants.
+        let color_size = 48.;
+        let segment_size = 300.;
+
+        let (window_width, _) = get_drawable_size(ctx);
+        let x_offset = window_width as f32 / 2. - 1.3 * segment_size;
+        let y_offset = 60.;
+
+        // Draw score for each color.
+        for (i, (color, amount)) in self.collected.iter().enumerate() {
+            let (r, g, b) = color.rgb();
+            set_color(ctx, ggezColor::from_rgb(r, g, b))?;
+            circle(
+                ctx,
+                DrawMode::Fill,
+                Point2::new(x_offset + i as f32 * segment_size, y_offset),
+                color_size / 2.,
+                0.1,
+            )?;
+            let text = Text::new(ctx, &format!("{:3?}", amount), &font)?;
+            draw(
+                ctx,
+                &text,
+                Point2::new(
+                    x_offset + i as f32 * segment_size + color_size,
+                    y_offset - text.height() as f32 / 2.,
+                ),
+                0.,
+            )?;
+        }
+        // Reset color to default (white).
+        set_color(ctx, ggezColor::from_rgb(255, 255, 255))?;
+
+        Ok(())
     }
 }
