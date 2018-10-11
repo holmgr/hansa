@@ -133,6 +133,12 @@ impl Route {
         self.ships.push(ship);
     }
 
+    /// Returns an iterator over all port locations on this path in order.
+    pub fn ports(&self) -> impl Iterator<Item = &Position> {
+        self.paths.iter().map(|(p, _)| p)
+    }
+
+
     /// Returns an iterator over all ships on this route.
     pub fn ships(&self) -> impl Iterator<Item = &Ship> {
         self.ships.iter()

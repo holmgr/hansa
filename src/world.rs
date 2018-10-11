@@ -67,6 +67,14 @@ impl World {
         &mut self.shipyard
     }
 
+    /// Return all the current valid start points for drawing/extending a route.
+    pub fn allowed_starts(&self, shape: RouteShape) -> Vec<Position> {
+        match self.routes.get(&shape) {
+             Some(route) => vec![route.ports().cloned().last().expect("No last port location")],
+             None => self.ports.iter().map(|port| port.position()).collect::<Vec<_>>()
+        }
+    }
+
     /// Creates a new route (if non exists) and adds a new link between start and goal.
     pub fn add_route(
         &mut self,

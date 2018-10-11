@@ -246,15 +246,16 @@ impl event::EventHandler for GameState {
             }
             // Start drawing a new path
             None => {
-                if self.world.port(mouse_position_scaled).is_some()
-                    && self.shape_selector.selected().is_some()
-                {
-                    Some(RouteBuilder::new(Position::new(
-                        self.config.scaling as i32 * x / cell_size as i32,
-                        self.config.scaling as i32 * y / cell_size as i32,
-                    )))
-                } else {
-                    None
+                match self.shape_selector.selected() {
+                     Some(ref shape) if self.world.port(mouse_position_scaled).is_some() => {
+                         if self.world.allowed_starts(*shape).iter().any(|p| *p == mouse_position_scaled) {
+                            Some(RouteBuilder::new(mouse_position_scaled))
+                         }
+                         else {
+                             None
+                         }
+                    },
+                    _ => None
                 }
             }
         }
