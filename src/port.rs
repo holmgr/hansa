@@ -87,8 +87,9 @@ impl<'a> Drawable<'a> for Port {
                     Self::TILE_SIZE,
                     Self::TILE_SIZE,
                 ),
-                dest: Point2::from(self.position),
+                dest: Point2::new(self.position.x as f32 + 0.5, self.position.y as f32 + 0.5),
                 color: Some(ggezColor::from_rgb(i_r, i_g, i_b)),
+                offset: Point2::new(0.5, 0.5),
                 ..Default::default()
             },
             DrawParam {

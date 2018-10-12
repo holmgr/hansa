@@ -269,8 +269,6 @@ impl event::EventHandler for GameState {
                     {
                         // Add port animations to valid end_points
                         let allowed_ends = self.world.allowed_ends(mouse_position_scaled, *shape);
-
-                        // Remove all port animations.
                         for port in self.world.ports_mut() {
                             if allowed_ends.iter().any(|p| *p == port.position()) {
                                 *port.animation_mut() = Some(Animation::new(
