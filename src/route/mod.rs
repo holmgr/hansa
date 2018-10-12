@@ -138,7 +138,6 @@ impl Route {
         self.paths.iter().map(|(p, _)| p)
     }
 
-
     /// Returns an iterator over all ships on this route.
     pub fn ships(&self) -> impl Iterator<Item = &Ship> {
         self.ships.iter()

@@ -232,32 +232,39 @@ impl event::EventHandler for GameState {
 
         self.route_builder = match &self.route_builder {
             // Drawing already in progress, stop drawing.
-            Some(rb) => {
-                if self.world.port(mouse_position_scaled).is_some() {
-                    // Add an actual route here if, ensure we have a shape selected.
-                    if let Some(shape) = self.shape_selector.selected() {
+            Some(rb) => match self.shape_selector.selected() {
+                Some(shape) if self.world.port(mouse_position_scaled).is_some() => {
+                    if self
+                        .world
+                        .allowed_ends(*rb.from(), shape)
+                        .iter()
+                        .any(|p| *p == mouse_position_scaled)
+                    {
                         if let Some(path) = rb.path() {
                             self.world
                                 .add_route(shape, *rb.from(), *rb.to(), path.clone())
                         }
                     }
+                    None
                 }
-                None
-            }
+                _ => None,
+            },
             // Start drawing a new path
-            None => {
-                match self.shape_selector.selected() {
-                     Some(ref shape) if self.world.port(mouse_position_scaled).is_some() => {
-                         if self.world.allowed_starts(*shape).iter().any(|p| *p == mouse_position_scaled) {
-                            Some(RouteBuilder::new(mouse_position_scaled))
-                         }
-                         else {
-                             None
-                         }
-                    },
-                    _ => None
+            None => match self.shape_selector.selected() {
+                Some(ref shape) if self.world.port(mouse_position_scaled).is_some() => {
+                    if self
+                        .world
+                        .allowed_starts(*shape)
+                        .iter()
+                        .any(|p| *p == mouse_position_scaled)
+                    {
+                        Some(RouteBuilder::new(mouse_position_scaled))
+                    } else {
+                        None
+                    }
                 }
-            }
+                _ => None,
+            },
         }
     }
 

@@ -70,8 +70,44 @@ impl World {
     /// Return all the current valid start points for drawing/extending a route.
     pub fn allowed_starts(&self, shape: RouteShape) -> Vec<Position> {
         match self.routes.get(&shape) {
-             Some(route) => vec![route.ports().cloned().last().expect("No last port location")],
-             None => self.ports.iter().map(|port| port.position()).collect::<Vec<_>>()
+            Some(route) => vec![
+                route
+                    .ports()
+                    .cloned()
+                    .last()
+                    .expect("No last port location"),
+            ],
+            None => self
+                .ports
+                .iter()
+                .map(|port| port.position())
+                .collect::<Vec<_>>(),
+        }
+    }
+
+    /// Return all the current valid end points for drawing/extending a route.
+    pub fn allowed_ends(&self, start: Position, shape: RouteShape) -> Vec<Position> {
+        match self.routes.get(&shape) {
+            Some(route) => self
+                .ports
+                .iter()
+                .filter_map(|port| {
+                    if !route.ports().any(|p| *p == port.position()) {
+                        Some(port.position())
+                    } else {
+                        None
+                    }
+                }).collect::<Vec<_>>(),
+            None => self
+                .ports
+                .iter()
+                .filter_map(|port| {
+                    if port.position() != start {
+                        Some(port.position())
+                    } else {
+                        None
+                    }
+                }).collect::<Vec<_>>(),
         }
     }
 
