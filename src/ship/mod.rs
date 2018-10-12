@@ -62,7 +62,7 @@ impl Ship {
         self.reverse
     }
 
-    fn animation_mut(&mut self) -> &mut Option<Animation> {
+    pub fn animation_mut(&mut self) -> &mut Option<Animation> {
         &mut self.animation
     }
 
@@ -84,6 +84,11 @@ impl Ship {
     /// Returns whether the ships is currently docked.
     pub fn is_docked(&self) -> bool {
         self.docked.subsec_millis() > 0
+    }
+
+    /// Returns the current cargo if any.
+    pub fn cargo(&self) -> Option<Color> {
+        self.cargo.map(|(_, c)| c)
     }
 
     /// Attempts to unload the current cargo if any.

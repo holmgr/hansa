@@ -1,15 +1,23 @@
 use ggez::{
-    graphics::DrawParam,
+    graphics::{Color as ggezColor, DrawParam},
     timer::{duration_to_f64, get_delta},
     Context,
 };
 use std::{f32::consts::PI, time::Duration};
 
+use color::Color;
 use update::Updatable;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AnimationType {
-    PulseScale { amplitude: f32, rate: f32 },
+    PulseScale {
+        amplitude: f32,
+        rate: f32,
+    },
+    ColorDrain {
+        from: Option<Color>,
+        to: Option<Color>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -61,6 +69,32 @@ impl Animation {
                         * (2. * PI * duration_to_f64(self.time_elapsed) as f32 / rate).sin()
                         + 1.;
                 }
+                AnimationType::ColorDrain { from, to } => {
+                    // If over half way.
+                    let animation_fraction = duration_to_f64(self.time_elapsed)
+                        / duration_to_f64(self.animation_duration);
+                    println!(
+                        "Elapsed: {:?}, Total: {:?}, Animation fraction: {}",
+                        self.time_elapsed, self.animation_duration, animation_fraction
+                    );
+                    let black = (69, 55, 52);
+
+                    let (from_r, from_g, from_b) = match from {
+                        Some(c) => c.rgb(),
+                        None => black,
+                    };
+                    let (to_r, to_g, to_b) = match to {
+                        Some(c) => c.rgb(),
+                        None => black,
+                    };
+                    let from_amount = 1. - animation_fraction;
+                    let to_amount = 1. - from_amount;
+                    param.color = Some(ggezColor::from_rgb(
+                        (f64::from(from_r) * from_amount + f64::from(to_r) * to_amount) as u8,
+                        (f64::from(from_g) * from_amount + f64::from(to_g) * to_amount) as u8,
+                        (f64::from(from_b) * from_amount + f64::from(to_b) * to_amount) as u8,
+                    ));
+                }
             }
         }
         drawparams
@@ -71,7 +105,6 @@ impl<'a> Updatable<'a> for Animation {
     type Data = ();
 
     fn update(&'a mut self, ctx: &'a Context, _data: ()) {
-        let duration_elapsed = self.duration_elapsed_mut();
-        *duration_elapsed += get_delta(ctx)
+        self.time_elapsed += get_delta(ctx)
     }
 }

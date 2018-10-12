@@ -10,7 +10,7 @@ use std::{
 
 use animation::{Animation, AnimationType};
 use config::Config;
-use draw::SpriteDrawer;
+use draw::{Drawable, SpriteDrawer};
 use geometry::Position;
 use port::Port;
 use route::{RouteBuilder, ShapeSelector};
@@ -133,7 +133,25 @@ impl event::EventHandler for GameState {
                 });
 
             for ship in route.ships_mut() {
+                // Remove all animations that have finished.
+                *ship.animation_mut() = match ship.animation_mut() {
+                    Some(ref mut animation) => {
+                        animation.update(ctx, ());
+                        if animation.has_finished() {
+                            None
+                        } else {
+                            Some(*animation)
+                        }
+                    }
+                    None => None,
+                };
+
                 if ship.is_docked() {
+                    let mut animation_length = 500;
+                    // TODO: Quick fix, We have no cargo, extend loading animation.
+                    if ship.cargo().is_none() {
+                        animation_length *= 2;
+                    }
                     let (_, import, export) = tradings
                         .iter()
                         .find(|(p, _, _)| *p == Position::from(ship.position()))
@@ -143,8 +161,28 @@ impl event::EventHandler for GameState {
                         if cargo == *import {
                             new_colors.push(cargo);
                         }
+                        // TODO: Fix animation of throwing away cargo.
+                        if ship.animation().is_none() {
+                            *ship.animation_mut() = Some(Animation::new(
+                                Duration::from_millis(animation_length),
+                                AnimationType::ColorDrain {
+                                    from: Some(cargo),
+                                    to: None,
+                                },
+                            ));
+                        }
                     } else {
                         ship.try_load(*export);
+                        // Add cargo loading animation if already not animated.
+                        if ship.animation().is_none() {
+                            *ship.animation_mut() = Some(Animation::new(
+                                Duration::from_millis(animation_length),
+                                AnimationType::ColorDrain {
+                                    from: None,
+                                    to: Some(*export),
+                                },
+                            ));
+                        }
                     }
                 }
             }
