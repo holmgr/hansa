@@ -5,17 +5,19 @@ use ggez::{
 };
 use rand::{seq::sample_slice, Rng, ThreadRng};
 
+use animation::Animation;
 use color::Color;
 use draw::Drawable;
 use geometry::Position;
 use update::Updatable;
 use world::World;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Port {
     import: Color,
     export: Color,
     position: Position,
+    animation: Option<Animation>,
 }
 
 impl Port {
@@ -27,6 +29,7 @@ impl Port {
             position,
             import: initial_colors[0],
             export: initial_colors[1],
+            animation: None,
         }
     }
 
@@ -43,6 +46,10 @@ impl Port {
     /// Returns the current export color.
     pub fn export(&self) -> Color {
         self.export
+    }
+
+    pub fn animation_mut(&mut self) -> &mut Option<Animation> {
+        &mut self.animation
     }
 }
 
@@ -65,6 +72,10 @@ impl<'a> Updatable<'a> for Port {
 impl<'a> Drawable<'a> for Port {
     type Data = World;
 
+    fn animation(&self) -> Option<Animation> {
+        self.animation
+    }
+
     fn draw(&self, _world: &World) -> Vec<DrawParam> {
         let (e_r, e_g, e_b) = self.export.rgb();
         let (i_r, i_g, i_b) = self.import.rgb();
@@ -76,14 +87,16 @@ impl<'a> Drawable<'a> for Port {
                     Self::TILE_SIZE,
                     Self::TILE_SIZE,
                 ),
-                dest: Point2::from(self.position),
+                dest: Point2::new(self.position.x as f32 + 0.5, self.position.y as f32 + 0.5),
                 color: Some(ggezColor::from_rgb(i_r, i_g, i_b)),
+                offset: Point2::new(0.5, 0.5),
                 ..Default::default()
             },
             DrawParam {
                 src: Rect::new(0., 2. * Self::TILE_OFFSET, Self::TILE_SIZE, Self::TILE_SIZE),
-                dest: Point2::from(self.position),
+                dest: Point2::new(self.position.x as f32 + 0.5, self.position.y as f32 + 0.5),
                 color: Some(ggezColor::from_rgb(e_r, e_g, e_b)),
+                offset: Point2::new(0.5, 0.5),
                 ..Default::default()
             },
         ]

@@ -6,16 +6,22 @@ use ggez::{
     Context, GameResult,
 };
 
+use animation::Animation;
 use config::Config;
 
 /// A drawable type.
 pub trait Drawable<'a> {
     // TODO: Move magic constant here.
-    const TILE_SIZE: f32 = 513. / 2048.;
-    const TILE_OFFSET: f32 = 512. / 2048.;
+    const TILE_SIZE: f32 = 512. / 2047.;
+    const TILE_OFFSET: f32 = 515. / 2047.;
 
     /// Environmental data needed to draw item.
     type Data;
+
+    /// Returns the current animation, defaults to None for all types.
+    fn animation(&self) -> Option<Animation> {
+        None
+    }
 
     /// Returns a drawparam (sprite) representing this type.
     fn draw(&self, data: &'a Self::Data) -> Vec<DrawParam>;
@@ -45,7 +51,12 @@ impl SpriteDrawer {
         data: &'a T::Data,
         grid_scaling: bool,
     ) {
-        for mut param in item.draw(data) {
+        let mut params = item.draw(data);
+        // Animate if possible.
+        if let Some(animation) = item.animation() {
+            params = animation.animate(params);
+        }
+        for mut param in params {
             // Scale the param to so it matches grid size screen.
             let (window_width, _) = get_drawable_size(ctx);
             let cell_size = (config.scaling * window_width) as f32 / config.grid_width as f32;

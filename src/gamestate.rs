@@ -5,10 +5,12 @@ use rand::prelude::*;
 use std::{
     io::{BufRead, BufReader, Read},
     mem,
+    time::Duration,
 };
 
+use animation::{Animation, AnimationType};
 use config::Config;
-use draw::SpriteDrawer;
+use draw::{Drawable, SpriteDrawer};
 use geometry::Position;
 use port::Port;
 use route::{RouteBuilder, ShapeSelector};
@@ -131,7 +133,25 @@ impl event::EventHandler for GameState {
                 });
 
             for ship in route.ships_mut() {
+                // Remove all animations that have finished.
+                *ship.animation_mut() = match ship.animation_mut() {
+                    Some(ref mut animation) => {
+                        animation.update(ctx, ());
+                        if animation.has_finished() {
+                            None
+                        } else {
+                            Some(*animation)
+                        }
+                    }
+                    None => None,
+                };
+
                 if ship.is_docked() {
+                    let mut animation_length = 500;
+                    // TODO: Quick fix, We have no cargo, extend loading animation.
+                    if ship.cargo().is_none() {
+                        animation_length *= 2;
+                    }
                     let (_, import, export) = tradings
                         .iter()
                         .find(|(p, _, _)| *p == Position::from(ship.position()))
@@ -141,8 +161,28 @@ impl event::EventHandler for GameState {
                         if cargo == *import {
                             new_colors.push(cargo);
                         }
+                        // TODO: Fix animation of throwing away cargo.
+                        if ship.animation().is_none() {
+                            *ship.animation_mut() = Some(Animation::new(
+                                Duration::from_millis(animation_length),
+                                AnimationType::ColorDrain {
+                                    from: Some(cargo),
+                                    to: None,
+                                },
+                            ));
+                        }
                     } else {
                         ship.try_load(*export);
+                        // Add cargo loading animation if already not animated.
+                        if ship.animation().is_none() {
+                            *ship.animation_mut() = Some(Animation::new(
+                                Duration::from_millis(animation_length),
+                                AnimationType::ColorDrain {
+                                    from: None,
+                                    to: Some(*export),
+                                },
+                            ));
+                        }
                     }
                 }
             }
@@ -156,6 +196,9 @@ impl event::EventHandler for GameState {
         // Update all ports.
         for port in self.world.ports_mut() {
             port.update(ctx, &mut self.rng);
+            if let Some(ref mut animation) = port.animation_mut() {
+                animation.update(ctx, ());
+            }
         }
         Ok(())
     }
@@ -232,23 +275,27 @@ impl event::EventHandler for GameState {
 
         self.route_builder = match &self.route_builder {
             // Drawing already in progress, stop drawing.
-            Some(rb) => match self.shape_selector.selected() {
-                Some(shape) if self.world.port(mouse_position_scaled).is_some() => {
-                    if self
-                        .world
-                        .allowed_ends(*rb.from(), shape)
-                        .iter()
-                        .any(|p| *p == mouse_position_scaled)
-                    {
-                        if let Some(path) = rb.path() {
-                            self.world
-                                .add_route(shape, *rb.from(), *rb.to(), path.clone())
-                        }
-                    }
-                    None
+            Some(rb) => {
+                // Remove all port animations.
+                for port in self.world.ports_mut() {
+                    *port.animation_mut() = None;
                 }
-                _ => None,
-            },
+
+                match self.shape_selector.selected() {
+                    Some(shape) if self.world.port(mouse_position_scaled).is_some() => {
+                        let allowed_ends = self.world.allowed_ends(*rb.from(), shape);
+
+                        if allowed_ends.iter().any(|p| *p == mouse_position_scaled) {
+                            if let Some(path) = rb.path() {
+                                self.world
+                                    .add_route(shape, *rb.from(), *rb.to(), path.clone())
+                            }
+                        }
+                        None
+                    }
+                    _ => None,
+                }
+            }
             // Start drawing a new path
             None => match self.shape_selector.selected() {
                 Some(ref shape) if self.world.port(mouse_position_scaled).is_some() => {
@@ -258,6 +305,19 @@ impl event::EventHandler for GameState {
                         .iter()
                         .any(|p| *p == mouse_position_scaled)
                     {
+                        // Add port animations to valid end_points
+                        let allowed_ends = self.world.allowed_ends(mouse_position_scaled, *shape);
+                        for port in self.world.ports_mut() {
+                            if allowed_ends.iter().any(|p| *p == port.position()) {
+                                *port.animation_mut() = Some(Animation::new(
+                                    Duration::new(3600, 0),
+                                    AnimationType::PulseScale {
+                                        amplitude: 0.1,
+                                        rate: 1.,
+                                    },
+                                ));
+                            }
+                        }
                         Some(RouteBuilder::new(mouse_position_scaled))
                     } else {
                         None

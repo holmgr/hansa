@@ -6,6 +6,7 @@ use ggez::{
 };
 use std::time::Duration;
 
+use animation::Animation;
 use color::Color;
 use config::Config;
 use draw::Drawable;
@@ -32,6 +33,7 @@ pub struct Ship {
     reverse: bool,
     /// Color currently being carried from the given port.
     cargo: Option<(Waypoint, Color)>,
+    animation: Option<Animation>,
 }
 
 impl Ship {
@@ -46,6 +48,7 @@ impl Ship {
             path,
             reverse: false,
             cargo: None,
+            animation: None,
         }
     }
 
@@ -57,6 +60,10 @@ impl Ship {
     /// Returns whether the ship currently is on its return trip.
     pub fn reverse(&self) -> bool {
         self.reverse
+    }
+
+    pub fn animation_mut(&mut self) -> &mut Option<Animation> {
+        &mut self.animation
     }
 
     /// Returns the next waypoint on the ship's current route.
@@ -77,6 +84,11 @@ impl Ship {
     /// Returns whether the ships is currently docked.
     pub fn is_docked(&self) -> bool {
         self.docked.subsec_millis() > 0
+    }
+
+    /// Returns the current cargo if any.
+    pub fn cargo(&self) -> Option<Color> {
+        self.cargo.map(|(_, c)| c)
     }
 
     /// Attempts to unload the current cargo if any.
@@ -191,6 +203,10 @@ impl<'a> Updatable<'a> for Ship {
 
 impl<'a> Drawable<'a> for Ship {
     type Data = (); // Mouse position
+
+    fn animation(&self) -> Option<Animation> {
+        self.animation
+    }
 
     fn draw(&self, _: &()) -> Vec<DrawParam> {
         let current_waypoint = Point2::from(Position::from(self.current_waypoint));

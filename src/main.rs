@@ -7,6 +7,7 @@ extern crate serde_json;
 use ggez::{conf, event, Context};
 use std::{env, path::PathBuf};
 
+pub mod animation;
 pub mod color;
 pub mod config;
 pub mod draw;
