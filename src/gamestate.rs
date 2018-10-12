@@ -237,27 +237,27 @@ impl event::EventHandler for GameState {
 
         self.route_builder = match &self.route_builder {
             // Drawing already in progress, stop drawing.
-            Some(rb) => match self.shape_selector.selected() {
-                Some(shape) if self.world.port(mouse_position_scaled).is_some() => {
-                    let allowed_ends = self.world.allowed_ends(*rb.from(), shape);
-
-                    // Remove all port animations.
-                    for port in self.world.ports_mut() {
-                        if allowed_ends.iter().any(|p| *p == port.position()) {
-                            *port.animation_mut() = None;
-                        }
-                    }
-
-                    if allowed_ends.iter().any(|p| *p == mouse_position_scaled) {
-                        if let Some(path) = rb.path() {
-                            self.world
-                                .add_route(shape, *rb.from(), *rb.to(), path.clone())
-                        }
-                    }
-                    None
+            Some(rb) => {
+                // Remove all port animations.
+                for port in self.world.ports_mut() {
+                    *port.animation_mut() = None;
                 }
-                _ => None,
-            },
+
+                match self.shape_selector.selected() {
+                    Some(shape) if self.world.port(mouse_position_scaled).is_some() => {
+                        let allowed_ends = self.world.allowed_ends(*rb.from(), shape);
+
+                        if allowed_ends.iter().any(|p| *p == mouse_position_scaled) {
+                            if let Some(path) = rb.path() {
+                                self.world
+                                    .add_route(shape, *rb.from(), *rb.to(), path.clone())
+                            }
+                        }
+                        None
+                    }
+                    _ => None,
+                }
+            }
             // Start drawing a new path
             None => match self.shape_selector.selected() {
                 Some(ref shape) if self.world.port(mouse_position_scaled).is_some() => {

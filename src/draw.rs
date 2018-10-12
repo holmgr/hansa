@@ -12,8 +12,8 @@ use config::Config;
 /// A drawable type.
 pub trait Drawable<'a> {
     // TODO: Move magic constant here.
-    const TILE_SIZE: f32 = 513. / 2048.;
-    const TILE_OFFSET: f32 = 512. / 2048.;
+    const TILE_SIZE: f32 = 512. / 2047.;
+    const TILE_OFFSET: f32 = 515. / 2047.;
 
     /// Environmental data needed to draw item.
     type Data;
