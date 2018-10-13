@@ -13,7 +13,7 @@ use config::Config;
 use draw::{Drawable, SpriteDrawer};
 use geometry::Position;
 use port::Port;
-use route::{RouteBuilder, ShapeSelector};
+use route::{RouteBuilder, ShapeSelector, Waypoint};
 use ship::ShipBuilder;
 use tile::{Tile, TileKind};
 use update::Updatable;
@@ -243,6 +243,11 @@ impl event::EventHandler for GameState {
             }
         }
 
+        // Keeps track of whether we have changed the selection.
+        // I.e created a ship or route builder or destroyed one.
+        // TODO: Not the prettiest solution but hey.
+        let mut has_selection_changed = false;
+
         // Not the prettiest code...
         let mut swap_builder = None;
         mem::swap(&mut self.ship_builder, &mut swap_builder);
@@ -254,6 +259,7 @@ impl event::EventHandler for GameState {
                 if let Some(builder) = sb.try_place(mouse_position_scaled, &mut self.world) {
                     self.world.shipyard_mut().add_builder(builder);
                 }
+                has_selection_changed = true;
                 None
             }
             _ => {
@@ -266,6 +272,7 @@ impl event::EventHandler for GameState {
                 // Check if player has any ship available.
 
                 if shipyard_position.distance(mouse_position) <= cell_size as f32 {
+                    has_selection_changed = true;
                     self.world.shipyard_mut().build()
                 } else {
                     None
@@ -281,6 +288,7 @@ impl event::EventHandler for GameState {
                     *port.animation_mut() = None;
                 }
 
+                has_selection_changed = true;
                 match self.shape_selector.selected() {
                     Some(shape) if self.world.port(mouse_position_scaled).is_some() => {
                         let allowed_ends = self.world.allowed_ends(*rb.from(), shape);
@@ -318,6 +326,7 @@ impl event::EventHandler for GameState {
                                 ));
                             }
                         }
+                        has_selection_changed = true;
                         Some(RouteBuilder::new(mouse_position_scaled))
                     } else {
                         None
@@ -325,6 +334,16 @@ impl event::EventHandler for GameState {
                 }
                 _ => None,
             },
+        };
+
+        // If click on some waypoint, remove all routes through and return ships to shipyard.
+        if !has_selection_changed && self.route_builder.is_none() && self.ship_builder.is_none() {
+            let ships_removed = self
+                .world
+                .remove_routes_at(Waypoint::from(mouse_position_scaled));
+            for ship in ships_removed {
+                self.world.shipyard_mut().add_ship(ship);
+            }
         }
     }
 

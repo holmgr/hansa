@@ -133,6 +133,11 @@ impl Route {
         self.ships.push(ship);
     }
 
+    /// Removes all ships on this route and returns them.
+    pub fn remove_ships(&mut self) -> Vec<Ship> {
+        self.ships.drain(..).collect::<Vec<_>>()
+    }
+
     /// Returns an iterator over all port locations on this path in order.
     pub fn ports(&self) -> impl Iterator<Item = &Position> {
         self.paths.iter().map(|(p, _)| p)

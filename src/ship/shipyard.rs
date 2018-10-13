@@ -38,6 +38,11 @@ impl Shipyard {
     pub fn add_builder(&mut self, builder: ShipBuilder) {
         self.ships += 1;
     }
+
+    /// Returns a ship to the shipyard.
+    pub fn add_ship(&mut self, ship: Ship) {
+        self.ships += 1;
+    }
 }
 
 impl<'a> Drawable<'a> for Shipyard {

@@ -1,7 +1,7 @@
 use geometry::Position;
 use port::Port;
 use route::{find_path, reachable, Route, RouteShape, Waypoint};
-use ship::Shipyard;
+use ship::{Ship, Shipyard};
 use std::{collections::HashMap, iter::FromIterator};
 use tally::Tally;
 use tile::Tile;
@@ -60,6 +60,20 @@ impl World {
     /// Returns a mutable iterator over all routes.
     pub fn routes_mut(&mut self) -> impl Iterator<Item = (&RouteShape, &mut Route)> {
         self.routes.iter_mut()
+    }
+
+    /// Removes all routes going through the given waypoint.
+    pub fn remove_routes_at(&mut self, waypoint: Waypoint) -> Vec<Ship> {
+        let mut ships = vec![];
+        self.routes.retain(|_, route| {
+            if route.waypoints().into_iter().any(|w| *w == waypoint) {
+                ships.extend(route.remove_ships());
+                false
+            } else {
+                true
+            }
+        });
+        ships
     }
 
     /// Returns a mutable reference to the shipyard.
