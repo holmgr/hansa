@@ -73,10 +73,6 @@ impl Animation {
                     // If over half way.
                     let animation_fraction = duration_to_f64(self.time_elapsed)
                         / duration_to_f64(self.animation_duration);
-                    println!(
-                        "Elapsed: {:?}, Total: {:?}, Animation fraction: {}",
-                        self.time_elapsed, self.animation_duration, animation_fraction
-                    );
                     let black = (69, 55, 52);
 
                     let (from_r, from_g, from_b) = match from {
