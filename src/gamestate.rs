@@ -17,6 +17,7 @@ use port::{is_valid_arrangement, Port};
 use route::{RouteBuilder, ShapeSelector, Waypoint};
 use ship::ShipBuilder;
 use tile::{Tile, TileKind};
+use time::GameTimer;
 use update::Updatable;
 use world::World;
 
@@ -60,6 +61,9 @@ fn load_world<R: Rng>(ctx: &mut Context, config: &Config, color_sampler: &mut R)
     World::new(map.into_iter(), ports.into_iter())
 }
 
+/// Time of a single game session: 5min.
+static GAME_TIME_LENGTH: u64 = 60 * 5;
+
 /// Handles and holds all game information.
 pub struct GameState {
     font: graphics::Font,
@@ -71,6 +75,7 @@ pub struct GameState {
     ship_builder: Option<ShipBuilder>,
     shape_selector: ShapeSelector,
     rng: ThreadRng,
+    game_timer: GameTimer,
     last_color_shuffle: Duration,
 }
 
@@ -97,6 +102,10 @@ impl GameState {
             shape_selector: ShapeSelector::new(),
             rng: thread_rng(),
             last_color_shuffle: timer::get_time_since_start(ctx),
+            game_timer: GameTimer::new(
+                timer::get_time_since_start(ctx),
+                Duration::from_secs(GAME_TIME_LENGTH),
+            ),
         };
         Ok(state)
     }
@@ -133,11 +142,23 @@ impl GameState {
             }
         }
     }
+
+    /// Ends the game session.
+    /// TODO: Currently only dumps the final score and quits.
+    fn end_game(&mut self, ctx: &mut Context) {
+        println!("GAME OVER: Score {}", self.world.tally_mut().score());
+        ctx.quit().expect("Failed to quit game");
+    }
 }
 
 impl event::EventHandler for GameState {
     /// Updates the game state.
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
+        // Check if game time is up, end game in such case.
+        if self.game_timer.has_game_ended(ctx) {
+            self.end_game(ctx);
+        }
+
         while timer::check_update_time(ctx, 60) {
             // Update all ships.
             let tradings = self
@@ -505,6 +526,9 @@ impl event::EventHandler for GameState {
         self.world
             .tally_mut()
             .paint(&self.font, ctx, &self.config)?;
+
+        // Draw remaining game time.
+        self.game_timer.paint(&self.font, ctx, &self.config)?;
 
         graphics::present(ctx);
         self.frames += 1;

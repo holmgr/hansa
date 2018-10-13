@@ -18,6 +18,7 @@ pub mod route;
 pub mod ship;
 pub mod tally;
 pub mod tile;
+pub mod time;
 pub mod update;
 pub mod world;
 
