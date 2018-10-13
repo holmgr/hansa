@@ -1,16 +1,31 @@
-use ggez::{
-    graphics::{Color as ggezColor, DrawParam, Point2, Rect},
-    timer::get_ticks,
-    Context,
-};
-use rand::{seq::sample_slice, Rng, ThreadRng};
+use ggez::graphics::{Color as ggezColor, DrawParam, Point2, Rect};
+use rand::{seq::sample_slice, Rng};
 
 use animation::Animation;
 use color::Color;
 use draw::Drawable;
 use geometry::Position;
-use update::Updatable;
 use world::World;
+
+/// Returns whether the given amount of ports is a valid configuration of imports/exports.
+pub fn is_valid_arrangement(ports: &[Port]) -> bool {
+    let (mut imports, mut exports) = (Color::values(), Color::values());
+    for port in ports {
+        let (import, export) = (port.import(), port.export());
+
+        // Same import, export color is not valid.
+        if import == export {
+            return false;
+        }
+        if let Some(index) = imports.iter().position(|c| *c == import) {
+            imports.swap_remove(index);
+        }
+        if let Some(index) = exports.iter().position(|c| *c == export) {
+            exports.swap_remove(index);
+        }
+    }
+    imports.is_empty() && exports.is_empty()
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Port {
@@ -23,12 +38,11 @@ pub struct Port {
 impl Port {
     /// Creates a new port.
     pub fn new<R: Rng>(position: Position, gen: &mut R) -> Self {
-        let initial_colors = sample_slice(gen, &Color::values(), 2);
-        println!("Got intial colors: {:#?} at {:?}", initial_colors, position);
+        let (import, export) = Port::sample_colors(gen);
         Port {
             position,
-            import: initial_colors[0],
-            export: initial_colors[1],
+            import,
+            export,
             animation: None,
         }
     }
@@ -48,24 +62,24 @@ impl Port {
         self.export
     }
 
+    /// Returns a mutable reference to the current import color.
+    pub fn import_mut(&mut self) -> &mut Color {
+        &mut self.import
+    }
+
+    /// Returns a mutable reference to the current export color.
+    pub fn export_mut(&mut self) -> &mut Color {
+        &mut self.export
+    }
+
+    /// Samples a random import and export color.
+    pub fn sample_colors<R: Rng>(gen: &mut R) -> (Color, Color) {
+        let colors = sample_slice(gen, &Color::values(), 2);
+        (colors[0], colors[1])
+    }
+
     pub fn animation_mut(&mut self) -> &mut Option<Animation> {
         &mut self.animation
-    }
-}
-
-impl<'a> Updatable<'a> for Port {
-    type Data = &'a mut ThreadRng;
-
-    fn update(&mut self, ctx: &Context, gen: &'a mut ThreadRng) {
-        //let seconds_passed = get_time_since_start(ctx).as_secs();
-        let ticks = get_ticks(ctx);
-        // TODO: Move magic constant for color switching.
-        if ticks % 1000 == 0 && gen.gen_bool(1. / 10.) {
-            // TODO: Make swtiching more elegant and handle cases where we end up with no red etc.
-            let new_colors = sample_slice(gen, &Color::values(), 2);
-            self.import = new_colors[0];
-            self.export = new_colors[1];
-        }
     }
 }
 

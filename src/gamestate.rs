@@ -2,6 +2,7 @@ use ggez::{
     event, graphics, mouse, timer, {Context, GameResult},
 };
 use rand::prelude::*;
+use rand::{Rng, ThreadRng};
 use std::{
     io::{BufRead, BufReader, Read},
     mem,
@@ -12,7 +13,7 @@ use animation::{Animation, AnimationType};
 use config::Config;
 use draw::{Drawable, SpriteDrawer};
 use geometry::Position;
-use port::Port;
+use port::{is_valid_arrangement, Port};
 use route::{RouteBuilder, ShapeSelector, Waypoint};
 use ship::ShipBuilder;
 use tile::{Tile, TileKind};
@@ -70,6 +71,7 @@ pub struct GameState {
     ship_builder: Option<ShipBuilder>,
     shape_selector: ShapeSelector,
     rng: ThreadRng,
+    last_color_shuffle: Duration,
 }
 
 impl GameState {
@@ -94,47 +96,142 @@ impl GameState {
             ship_builder: None,
             shape_selector: ShapeSelector::new(),
             rng: thread_rng(),
+            last_color_shuffle: timer::get_time_since_start(ctx),
         };
         Ok(state)
+    }
+
+    /// Updates the port colors by switching one port randomly until it is valid.
+    fn update_port_colors(&mut self) {
+        let ports = self.world.ports_mut();
+        loop {
+            // Extra brackes due to NLL not existing in stable Rust yet.
+            {
+                let port = self.rng.choose_mut(ports).unwrap();
+                let (import, export) = Port::sample_colors(&mut self.rng);
+
+                // Update if we got new colors.
+                if port.import() != import || port.export() != export {
+                    // Got valid colors
+                    *port.import_mut() = import;
+                    *port.export_mut() = export;
+
+                    // Add animation.
+                    *port.animation_mut() = Some(Animation::new(
+                        Duration::new(1, 0),
+                        AnimationType::PulseScale {
+                            amplitude: 0.4,
+                            rate: 1.,
+                        },
+                    ));
+                } else {
+                    continue;
+                }
+            }
+            if is_valid_arrangement(ports) {
+                break;
+            }
+        }
     }
 }
 
 impl event::EventHandler for GameState {
     /// Updates the game state.
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
-        // Update all ships.
+        while timer::check_update_time(ctx, 60) {
+            // Update all ships.
+            let tradings = self
+                .world
+                .ports()
+                .iter()
+                .map(|p| (p.position(), p.import(), p.export()))
+                .collect::<Vec<_>>();
+            let mut new_colors = vec![];
 
-        let tradings = self
-            .world
-            .ports()
-            .iter()
-            .map(|p| (p.position(), p.import(), p.export()))
-            .collect::<Vec<_>>();
-        let mut new_colors = vec![];
+            for (_, route) in self.world.routes_mut() {
+                let next_paths = route
+                    .ships()
+                    .map(|s| (s.reverse(), s.is_arriving(), s.next_waypoint().unwrap()))
+                    .map(|(reverse, is_arriving, curr)| {
+                        if is_arriving && !reverse {
+                            route.next_path(Position::from(curr))
+                        } else if is_arriving && reverse {
+                            route.previous_path(Position::from(curr))
+                        } else {
+                            None
+                        }
+                    }).collect::<Vec<_>>();
+                next_paths
+                    .into_iter()
+                    .zip(route.ships_mut())
+                    .for_each(|(path, ship)| {
+                        ship.update(ctx, path);
+                    });
 
-        for (_, route) in self.world.routes_mut() {
-            let next_paths = route
-                .ships()
-                .map(|s| (s.reverse(), s.is_arriving(), s.next_waypoint().unwrap()))
-                .map(|(reverse, is_arriving, curr)| {
-                    if is_arriving && !reverse {
-                        route.next_path(Position::from(curr))
-                    } else if is_arriving && reverse {
-                        route.previous_path(Position::from(curr))
-                    } else {
-                        None
+                for ship in route.ships_mut() {
+                    // Remove all animations that have finished.
+                    *ship.animation_mut() = match ship.animation_mut() {
+                        Some(ref mut animation) => {
+                            animation.update(ctx, ());
+                            if animation.has_finished() {
+                                None
+                            } else {
+                                Some(*animation)
+                            }
+                        }
+                        None => None,
+                    };
+
+                    if ship.is_docked() {
+                        let mut animation_length = 500;
+                        // TODO: Quick fix, We have no cargo, extend loading animation.
+                        if ship.cargo().is_none() {
+                            animation_length *= 2;
+                        }
+                        let (_, import, export) = tradings
+                            .iter()
+                            .find(|(p, _, _)| *p == Position::from(ship.position()))
+                            .expect("No port at ship dock");
+                        if let Some(cargo) = ship.try_unload() {
+                            // Unload ship cargo, adding to score if it matches port import.
+                            if cargo == *import {
+                                new_colors.push(cargo);
+                            }
+                            // TODO: Fix animation of throwing away cargo.
+                            if ship.animation().is_none() {
+                                *ship.animation_mut() = Some(Animation::new(
+                                    Duration::from_millis(animation_length),
+                                    AnimationType::ColorDrain {
+                                        from: Some(cargo),
+                                        to: None,
+                                    },
+                                ));
+                            }
+                        } else {
+                            ship.try_load(*export);
+                            // Add cargo loading animation if already not animated.
+                            if ship.animation().is_none() {
+                                *ship.animation_mut() = Some(Animation::new(
+                                    Duration::from_millis(animation_length),
+                                    AnimationType::ColorDrain {
+                                        from: None,
+                                        to: Some(*export),
+                                    },
+                                ));
+                            }
+                        }
                     }
-                }).collect::<Vec<_>>();
-            next_paths
-                .into_iter()
-                .zip(route.ships_mut())
-                .for_each(|(path, ship)| {
-                    ship.update(ctx, path);
-                });
+                }
+            }
 
-            for ship in route.ships_mut() {
-                // Remove all animations that have finished.
-                *ship.animation_mut() = match ship.animation_mut() {
+            // Add score for all colors collected.
+            new_colors
+                .into_iter()
+                .for_each(|c| self.world.tally_mut().update(c));
+
+            // Update all port animations.
+            for port in self.world.ports_mut() {
+                *port.animation_mut() = match port.animation_mut() {
                     Some(ref mut animation) => {
                         animation.update(ctx, ());
                         if animation.has_finished() {
@@ -144,61 +241,15 @@ impl event::EventHandler for GameState {
                         }
                     }
                     None => None,
-                };
-
-                if ship.is_docked() {
-                    let mut animation_length = 500;
-                    // TODO: Quick fix, We have no cargo, extend loading animation.
-                    if ship.cargo().is_none() {
-                        animation_length *= 2;
-                    }
-                    let (_, import, export) = tradings
-                        .iter()
-                        .find(|(p, _, _)| *p == Position::from(ship.position()))
-                        .expect("No port at ship dock");
-                    if let Some(cargo) = ship.try_unload() {
-                        // Unload ship cargo, adding to score if it matches port import.
-                        if cargo == *import {
-                            new_colors.push(cargo);
-                        }
-                        // TODO: Fix animation of throwing away cargo.
-                        if ship.animation().is_none() {
-                            *ship.animation_mut() = Some(Animation::new(
-                                Duration::from_millis(animation_length),
-                                AnimationType::ColorDrain {
-                                    from: Some(cargo),
-                                    to: None,
-                                },
-                            ));
-                        }
-                    } else {
-                        ship.try_load(*export);
-                        // Add cargo loading animation if already not animated.
-                        if ship.animation().is_none() {
-                            *ship.animation_mut() = Some(Animation::new(
-                                Duration::from_millis(animation_length),
-                                AnimationType::ColorDrain {
-                                    from: None,
-                                    to: Some(*export),
-                                },
-                            ));
-                        }
-                    }
                 }
             }
         }
 
-        // Add score for all colors collected.
-        new_colors
-            .into_iter()
-            .for_each(|c| self.world.tally_mut().update(c));
-
-        // Update all ports.
-        for port in self.world.ports_mut() {
-            port.update(ctx, &mut self.rng);
-            if let Some(ref mut animation) = port.animation_mut() {
-                animation.update(ctx, ());
-            }
+        // Swtich some port import/export every 15s.
+        // TODO: Move magic constant.
+        if (timer::get_time_since_start(ctx) - self.last_color_shuffle).as_secs() > 15 {
+            self.last_color_shuffle = timer::get_time_since_start(ctx);
+            self.update_port_colors();
         }
         Ok(())
     }
