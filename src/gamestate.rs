@@ -453,12 +453,12 @@ impl event::EventHandler for GameState {
         _yrel: i32,
     ) {
         let (window_width, _) = graphics::get_drawable_size(ctx);
-        let cell_size = self.config.scaling * window_width / self.config.grid_width;
+        let cell_size = (self.config.scaling * window_width) as f32 / self.config.grid_width as f32;
         if let Some(rb) = &mut self.route_builder {
             rb.update(
                 Position::new(
-                    self.config.scaling as i32 * x / cell_size as i32,
-                    self.config.scaling as i32 * y / cell_size as i32,
+                    (self.config.scaling as f32 * x as f32 / cell_size) as i32,
+                    (self.config.scaling as f32 * y as f32 / cell_size) as i32,
                 ),
                 &self.world,
             );
