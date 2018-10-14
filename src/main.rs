@@ -11,6 +11,7 @@ pub mod animation;
 pub mod color;
 pub mod config;
 pub mod draw;
+pub mod fonts;
 mod gamestate;
 pub mod geometry;
 pub mod port;

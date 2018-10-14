@@ -12,6 +12,7 @@ use std::{
 use animation::{Animation, AnimationType};
 use config::Config;
 use draw::{Drawable, SpriteDrawer};
+use fonts::FontCache;
 use geometry::Position;
 use port::{is_valid_arrangement, Port};
 use route::{RouteBuilder, ShapeSelector, Waypoint};
@@ -55,7 +56,7 @@ fn load_world<R: Rng>(ctx: &mut Context, config: &Config, color_sampler: &mut R)
                 [255, 0, 0] => {
                     closed_ports.push(Port::new(position, color_sampler));
                     map.push(Tile::new(position, TileKind::Land));
-                },
+                }
                 [0, 255, 0] => {
                     open_ports.push(Port::new(position, color_sampler));
                     map.push(Tile::new(position, TileKind::Land));
@@ -63,7 +64,11 @@ fn load_world<R: Rng>(ctx: &mut Context, config: &Config, color_sampler: &mut R)
                 _ => map.push(Tile::new(position, TileKind::Land)),
             }
         });
-    World::new(map.into_iter(), open_ports.into_iter(), closed_ports.into_iter())
+    World::new(
+        map.into_iter(),
+        open_ports.into_iter(),
+        closed_ports.into_iter(),
+    )
 }
 
 /// Time of a single game session: 5min.
@@ -71,7 +76,7 @@ static GAME_TIME_LENGTH: u64 = 60 * 5;
 
 /// Handles and holds all game information.
 pub struct GameState {
-    font: graphics::Font,
+    font_cache: FontCache,
     config: Config,
     frames: usize,
     sprite_drawer: SpriteDrawer,
@@ -96,8 +101,7 @@ impl GameState {
         let sprite_drawer = SpriteDrawer::new(image);
 
         let state = GameState {
-            font: graphics::Font::new(ctx, "/RobotoMono-Regular.ttf", 48)
-                .expect("Failed to load font"),
+            font_cache: FontCache::new(ctx),
             config,
             frames: 0,
             sprite_drawer,
@@ -281,15 +285,14 @@ impl event::EventHandler for GameState {
 
             // If we have more ports to add, do so and animate.
             if let Some(new_port) = self.world.open_random_port(&mut self.rng) {
-                    *new_port.animation_mut() = Some(Animation::new(
-                        Duration::new(1, 0),
-                        AnimationType::PulseScale {
-                            amplitude: 0.4,
-                            rate: 1.,
-                        },
-                    ));
-                    opened_new_port = true;
-
+                *new_port.animation_mut() = Some(Animation::new(
+                    Duration::new(1, 0),
+                    AnimationType::PulseScale {
+                        amplitude: 0.4,
+                        rate: 1.,
+                    },
+                ));
+                opened_new_port = true;
             }
             if !opened_new_port {
                 self.update_port_colors();
@@ -525,15 +528,6 @@ impl event::EventHandler for GameState {
             );
         }
 
-        // Draw shipyard.
-        self.sprite_drawer.draw_item(
-            ctx,
-            &self.config,
-            self.world.shipyard_mut(),
-            &self.config,
-            true,
-        );
-
         // Draw ship icon under mouse if being held by player.
         if let Some(sb) = &self.ship_builder {
             let mouse_position =
@@ -548,10 +542,16 @@ impl event::EventHandler for GameState {
         // Draw tally.
         self.world
             .tally_mut()
-            .paint(&self.font, ctx, &self.config)?;
+            .paint(self.font_cache.medium(), ctx, &self.config)?;
+
+        // Draw shipyard.
+        self.world
+            .shipyard_mut()
+            .paint(self.font_cache.small(), ctx, &self.config)?;
 
         // Draw remaining game time.
-        self.game_timer.paint(&self.font, ctx, &self.config)?;
+        self.game_timer
+            .paint(self.font_cache.medium(), ctx, &self.config)?;
 
         graphics::present(ctx);
         self.frames += 1;

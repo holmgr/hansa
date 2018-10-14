@@ -36,7 +36,7 @@ impl World {
         }
     }
 
-    /// Opens a random closed port (if any is left), returning a mutable reference 
+    /// Opens a random closed port (if any is left), returning a mutable reference
     /// to the opened port.
     pub fn open_random_port<R: Rng>(&mut self, gen: &mut R) -> Option<&mut Port> {
         gen.shuffle(&mut self.closed_ports);
@@ -45,9 +45,8 @@ impl World {
             let open_ports_len = self.open_ports.len();
 
             // Get mutable reference to last element.
-            self.open_ports.get_mut(open_ports_len-1)
-        }
-        else {
+            self.open_ports.get_mut(open_ports_len - 1)
+        } else {
             None
         }
     }
@@ -169,7 +168,9 @@ impl World {
 
     /// Returns the port at the given position.
     pub fn port(&self, position: Position) -> Option<&Port> {
-        self.open_ports.iter().find(|port| port.position() == position)
+        self.open_ports
+            .iter()
+            .find(|port| port.position() == position)
     }
 
     /// Returns all reachable tiles from a given position which a trade
