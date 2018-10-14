@@ -292,8 +292,8 @@ impl event::EventHandler for GameState {
             self.config.scaling as i32 * y,
         );
         let mouse_position_scaled = Position::new(
-            self.config.scaling as i32 * x / cell_size as i32,
-            self.config.scaling as i32 * y / cell_size as i32,
+            ((self.config.scaling as f32 * x as f32) / cell_size) as i32,
+            ((self.config.scaling as f32 * y as f32) / cell_size) as i32,
         );
 
         // Check if some mouse button on some shape.
