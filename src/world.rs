@@ -1,3 +1,5 @@
+use rand::Rng;
+
 use geometry::Position;
 use port::Port;
 use route::{find_path, reachable, Route, RouteShape, Waypoint};
@@ -10,7 +12,8 @@ use tile::Tile;
 #[derive(Debug, Clone)]
 pub struct World {
     map: Vec<Tile>,
-    ports: Vec<Port>,
+    open_ports: Vec<Port>,
+    closed_ports: Vec<Port>,
     routes: HashMap<RouteShape, Route>,
     shipyard: Shipyard,
     tally: Tally,
@@ -18,17 +21,34 @@ pub struct World {
 
 impl World {
     /// Creates a new world.
-    pub fn new<I1, I2>(tiles: I1, ports: I2) -> Self
+    pub fn new<I1, I2>(tiles: I1, open_ports: I2, closed_ports: I2) -> Self
     where
         I1: Iterator<Item = Tile>,
         I2: Iterator<Item = Port>,
     {
         World {
             map: Vec::from_iter(tiles),
-            ports: Vec::from_iter(ports),
+            open_ports: Vec::from_iter(open_ports),
+            closed_ports: Vec::from_iter(closed_ports),
             routes: HashMap::new(),
             shipyard: Shipyard::new(),
             tally: Tally::new(),
+        }
+    }
+
+    /// Opens a random closed port (if any is left), returning a mutable reference 
+    /// to the opened port.
+    pub fn open_random_port<R: Rng>(&mut self, gen: &mut R) -> Option<&mut Port> {
+        gen.shuffle(&mut self.closed_ports);
+        if let Some(port) = self.closed_ports.pop() {
+            self.open_ports.push(port);
+            let open_ports_len = self.open_ports.len();
+
+            // Get mutable reference to last element.
+            self.open_ports.get_mut(open_ports_len-1)
+        }
+        else {
+            None
         }
     }
 
@@ -44,12 +64,12 @@ impl World {
 
     /// Returns a slice over all ports and their position.
     pub fn ports(&self) -> &[Port] {
-        &self.ports
+        &self.open_ports
     }
 
     /// Returns a mutable slice over all ports and their position.
     pub fn ports_mut(&mut self) -> &mut [Port] {
-        &mut self.ports
+        &mut self.open_ports
     }
 
     /// Returns a iterator over all routes.
@@ -92,7 +112,7 @@ impl World {
                     .expect("No last port location"),
             ],
             None => self
-                .ports
+                .open_ports
                 .iter()
                 .map(|port| port.position())
                 .collect::<Vec<_>>(),
@@ -103,7 +123,7 @@ impl World {
     pub fn allowed_ends(&self, start: Position, shape: RouteShape) -> Vec<Position> {
         match self.routes.get(&shape) {
             Some(route) => self
-                .ports
+                .open_ports
                 .iter()
                 .filter_map(|port| {
                     if !route.ports().any(|p| *p == port.position()) {
@@ -113,7 +133,7 @@ impl World {
                     }
                 }).collect::<Vec<_>>(),
             None => self
-                .ports
+                .open_ports
                 .iter()
                 .filter_map(|port| {
                     if port.position() != start {
@@ -139,7 +159,7 @@ impl World {
             .flat_map(|r| r.waypoints().into_iter().cloned())
             .collect::<Vec<_>>();
         let route = self.routes.entry(color).or_insert_with(Route::new);
-        route.add_link(&self.map, &self.ports, &waypoints, start, goal, path);
+        route.add_link(&self.map, &self.open_ports, &waypoints, start, goal, path);
     }
 
     /// Returns the tile at the given position.
@@ -149,13 +169,13 @@ impl World {
 
     /// Returns the port at the given position.
     pub fn port(&self, position: Position) -> Option<&Port> {
-        self.ports.iter().find(|port| port.position() == position)
+        self.open_ports.iter().find(|port| port.position() == position)
     }
 
     /// Returns all reachable tiles from a given position which a trade
     /// route can pass through.
     pub fn reachable(&self, position: Position) -> Vec<Position> {
-        reachable(&self.map, &self.ports, position)
+        reachable(&self.map, &self.open_ports, position)
     }
 
     /// Finds the shortest path from start to goal using astar with
@@ -166,7 +186,7 @@ impl World {
             .values()
             .flat_map(|r| r.waypoints().into_iter().cloned())
             .collect::<Vec<_>>();
-        find_path(&self.map, &self.ports, &waypoints, start, goal)
+        find_path(&self.map, &self.open_ports, &waypoints, start, goal)
     }
 }
 
@@ -175,7 +195,8 @@ impl Default for World {
     fn default() -> Self {
         World {
             map: vec![],
-            ports: vec![],
+            open_ports: vec![],
+            closed_ports: vec![],
             routes: HashMap::new(),
             shipyard: Shipyard::new(),
             tally: Tally::new(),

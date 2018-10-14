@@ -37,7 +37,8 @@ fn load_world<R: Rng>(ctx: &mut Context, config: &Config, color_sampler: &mut R)
         .collect();
 
     let mut map = vec![];
-    let mut ports = vec![];
+    let mut open_ports = vec![];
+    let mut closed_ports = vec![];
 
     buffer
         .as_slice()
@@ -51,14 +52,18 @@ fn load_world<R: Rng>(ctx: &mut Context, config: &Config, color_sampler: &mut R)
             );
             match colors {
                 [0, 0, 255] => map.push(Tile::new(position, TileKind::Water)),
-                [0, 0, 0] => {
-                    ports.push(Port::new(position, color_sampler));
+                [255, 0, 0] => {
+                    closed_ports.push(Port::new(position, color_sampler));
+                    map.push(Tile::new(position, TileKind::Land));
+                },
+                [0, 255, 0] => {
+                    open_ports.push(Port::new(position, color_sampler));
                     map.push(Tile::new(position, TileKind::Land));
                 }
                 _ => map.push(Tile::new(position, TileKind::Land)),
             }
         });
-    World::new(map.into_iter(), ports.into_iter())
+    World::new(map.into_iter(), open_ports.into_iter(), closed_ports.into_iter())
 }
 
 /// Time of a single game session: 5min.
@@ -76,7 +81,7 @@ pub struct GameState {
     shape_selector: ShapeSelector,
     rng: ThreadRng,
     game_timer: GameTimer,
-    last_color_shuffle: Duration,
+    last_progression_step: Duration,
 }
 
 impl GameState {
@@ -101,7 +106,7 @@ impl GameState {
             ship_builder: None,
             shape_selector: ShapeSelector::new(),
             rng: thread_rng(),
-            last_color_shuffle: timer::get_time_since_start(ctx),
+            last_progression_step: timer::get_time_since_start(ctx),
             game_timer: GameTimer::new(
                 timer::get_time_since_start(ctx),
                 Duration::from_secs(GAME_TIME_LENGTH),
@@ -266,11 +271,29 @@ impl event::EventHandler for GameState {
             }
         }
 
-        // Swtich some port import/export every 15s.
+        // Try to open a new port or some port import/export every 15s.
         // TODO: Move magic constant.
-        if (timer::get_time_since_start(ctx) - self.last_color_shuffle).as_secs() > 15 {
-            self.last_color_shuffle = timer::get_time_since_start(ctx);
-            self.update_port_colors();
+        if (timer::get_time_since_start(ctx) - self.last_progression_step).as_secs() > 15 {
+            self.last_progression_step = timer::get_time_since_start(ctx);
+
+            // Ugly variable to avoid NLL not being available in stable yet.
+            let mut opened_new_port = false;
+
+            // If we have more ports to add, do so and animate.
+            if let Some(new_port) = self.world.open_random_port(&mut self.rng) {
+                    *new_port.animation_mut() = Some(Animation::new(
+                        Duration::new(1, 0),
+                        AnimationType::PulseScale {
+                            amplitude: 0.4,
+                            rate: 1.,
+                        },
+                    ));
+                    opened_new_port = true;
+
+            }
+            if !opened_new_port {
+                self.update_port_colors();
+            }
         }
         Ok(())
     }
