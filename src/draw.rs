@@ -12,8 +12,8 @@ use config::Config;
 /// A drawable type.
 pub trait Drawable<'a> {
     // TODO: Move magic constant here.
-    const TILE_SIZE: f32 = 512. / 2047.;
-    const TILE_OFFSET: f32 = 515. / 2047.;
+    const TILE_SIZE: f32 = 512. / 2048.;
+    const TILE_OFFSET: f32 = 513. / 2048.;
 
     /// Environmental data needed to draw item.
     type Data;
@@ -62,9 +62,11 @@ impl SpriteDrawer {
             let cell_size = (config.scaling * window_width) as f32 / config.grid_width as f32;
 
             // TODO: Move magic constant here.
+            // Get background shine through with tile size as normalization factor,
+            // seems to be an issue with scaling in the engine.
             param.scale = Point2::new(
-                param.scale.x * cell_size / 512.,
-                param.scale.y * cell_size / 512.,
+                param.scale.x * cell_size / 508.,
+                param.scale.y * cell_size / 508.,
             );
 
             // Scale to grid coordinates only if needed.
