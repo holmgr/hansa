@@ -297,6 +297,24 @@ impl event::EventHandler for GameState {
             }
         }
 
+        // If no routes, add pulsing animation to shape selector.
+        let num_routes = self.world.routes().count();
+        *self.shape_selector.animation_mut() = match self.shape_selector.animation_mut() {
+            Some(_) if num_routes != 0 => None,
+            Some(ref mut animation) => {
+                animation.update(ctx, ());
+                Some(*animation)
+            }
+            None if num_routes == 0 => Some(Animation::new(
+                Duration::new(3600, 0),
+                AnimationType::PulseScale {
+                    amplitude: 0.1,
+                    rate: 1.,
+                },
+            )),
+            None => None,
+        };
+
         // Try to open a new port or some port import/export every 15s.
         // TODO: Move magic constant.
         if (timer::get_time_since_start(ctx) - self.last_progression_step).as_secs() > 15 {
@@ -546,15 +564,8 @@ impl event::EventHandler for GameState {
         }
 
         // Draw shape selector.
-        for shape in self.shape_selector.shapes() {
-            self.sprite_drawer.draw_item(
-                ctx,
-                &self.config,
-                shape,
-                &(&self.config, &self.shape_selector),
-                true,
-            );
-        }
+        self.sprite_drawer
+            .draw_item(ctx, &self.config, &self.shape_selector, &self.config, true);
 
         // Draw ship icon under mouse if being held by player.
         if let Some(sb) = &self.ship_builder {
