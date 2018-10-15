@@ -6,6 +6,7 @@ use fonts::FontCache;
 use audio::{AudioHandler, SoundEffect};
 use config::Config;
 
+/// Handles and displays the main menu.
 pub struct MenuState {
     font_cache: FontCache,
     audio_handler: AudioHandler,
