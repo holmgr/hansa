@@ -408,13 +408,18 @@ impl event::EventHandler for GameState {
             _ => {
                 // Check if some mouse button on shipyard.
                 // TODO: Duplicated position logic.
-                let shipyard_x_offset = ((self.config.grid_width as f32 / 2.) * cell_size) as i32;
-                let shipyard_y_offset = ((self.config.grid_height as f32 + 2.5) * cell_size) as i32;
+                let shipyard_x_offset = (self.config.grid_width as f32 / 2.) * cell_size;
+                let shipyard_y_offset = (self.config.grid_height as f32 + 2.5) * cell_size;
 
-                let shipyard_position = Position::new(shipyard_x_offset, shipyard_y_offset);
+                let shipyard_rect = graphics::Rect::new(
+                    shipyard_x_offset - cell_size,
+                    shipyard_y_offset - cell_size / 2.,
+                    cell_size * 2.5,
+                    cell_size,
+                );
+
                 // Check if player has any ship available.
-
-                if shipyard_position.distance(mouse_position) <= cell_size as f32 {
+                if shipyard_rect.contains(graphics::Point2::from(mouse_position)) {
                     has_selection_changed = true;
                     self.world.shipyard_mut().build()
                 } else {
