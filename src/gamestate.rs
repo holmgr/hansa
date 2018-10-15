@@ -102,9 +102,12 @@ impl GameState {
         let image = graphics::Image::new(ctx, TILESET_PATH)?;
         let sprite_drawer = SpriteDrawer::new(image);
 
+        let audio_handler = AudioHandler::new(ctx);
+        audio_handler.start_music();
+
         let state = GameState {
             font_cache: FontCache::new(ctx),
-            audio_handler: AudioHandler::new(ctx),
+            audio_handler,
             config,
             frames: 0,
             sprite_drawer,

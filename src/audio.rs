@@ -11,6 +11,7 @@ pub enum SoundEffect {
 /// Holds and manages playback of sound effects and music.
 pub struct AudioHandler {
     sound_effects: Vec<(SoundEffect, Source)>,
+    background_music: Source,
 }
 
 impl AudioHandler {
@@ -31,12 +32,20 @@ impl AudioHandler {
             ),
         ];
 
+        let mut background_music =
+            Source::new(ctx, "/audionautix-metaphor.wav").expect("Failed to load main music");
+        background_music.set_volume(0.2);
+        background_music.set_repeat(true);
+
         // Lower volume for sound effects a bit.
         for (_, sound) in &mut sound_effects {
             sound.set_volume(0.3);
         }
 
-        AudioHandler { sound_effects }
+        AudioHandler {
+            sound_effects,
+            background_music,
+        }
     }
 
     /// Plays the sound effect given once.
@@ -47,5 +56,15 @@ impl AudioHandler {
             .find(|(e, _)| *e == effect)
             .expect("Did not find associated sound effect");
         sound.play().expect("Failed to play sound");
+    }
+
+    /// Starts playing the background music.
+    pub fn start_music(&self) {
+        self.background_music.play().expect("Failed to play music");
+    }
+
+    /// Stops playing the background music.
+    pub fn stop_music(&self) {
+        self.background_music.stop();
     }
 }
