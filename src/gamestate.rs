@@ -10,6 +10,7 @@ use std::{
 };
 
 use animation::{Animation, AnimationType};
+use audio::{AudioHandler, SoundEffect};
 use config::Config;
 use draw::{Drawable, SpriteDrawer};
 use fonts::FontCache;
@@ -77,6 +78,7 @@ static GAME_TIME_LENGTH: u64 = 60 * 5;
 /// Handles and holds all game information.
 pub struct GameState {
     font_cache: FontCache,
+    audio_handler: AudioHandler,
     config: Config,
     frames: usize,
     sprite_drawer: SpriteDrawer,
@@ -102,6 +104,7 @@ impl GameState {
 
         let state = GameState {
             font_cache: FontCache::new(ctx),
+            audio_handler: AudioHandler::new(ctx),
             config,
             frames: 0,
             sprite_drawer,
@@ -280,6 +283,9 @@ impl event::EventHandler for GameState {
         if (timer::get_time_since_start(ctx) - self.last_progression_step).as_secs() > 15 {
             self.last_progression_step = timer::get_time_since_start(ctx);
 
+            // Play sound effect.
+            self.audio_handler.play(SoundEffect::ProgressionStep);
+
             // Ugly variable to avoid NLL not being available in stable yet.
             let mut opened_new_port = false;
 
@@ -356,6 +362,8 @@ impl event::EventHandler for GameState {
                 // If it fails (and returns a ship), place it back on shipyard.
                 if let Some(builder) = sb.try_place(mouse_position_scaled, &mut self.world) {
                     self.world.shipyard_mut().add_builder(builder);
+                } else {
+                    self.audio_handler.play(SoundEffect::PlaceShip);
                 }
                 has_selection_changed = true;
                 None
@@ -393,6 +401,7 @@ impl event::EventHandler for GameState {
 
                         if allowed_ends.iter().any(|p| *p == mouse_position_scaled) {
                             if let Some(path) = rb.path() {
+                                self.audio_handler.play(SoundEffect::CreateRoute);
                                 self.world
                                     .add_route(shape, *rb.from(), *rb.to(), path.clone())
                             }
