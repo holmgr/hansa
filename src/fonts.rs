@@ -13,7 +13,7 @@ impl FontCache {
         FontCache {
             small: Font::new(ctx, "/RobotoMono-Regular.ttf", 32).expect("Failed to load font"),
             medium: Font::new(ctx, "/RobotoMono-Regular.ttf", 48).expect("Failed to load font"),
-            large: Font::new(ctx, "/RobotoMono-Regular.ttf", 128).expect("Failed to load font"),
+            large: Font::new(ctx, "/RobotoMono-Regular.ttf", 192).expect("Failed to load font"),
         }
     }
 

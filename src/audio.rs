@@ -4,6 +4,7 @@ use ggez::{audio::Source, Context};
 /// Variants of sound effects which can be played.
 pub enum SoundEffect {
     CreateRoute,
+    ClickUIButton,
     PlaceShip,
     ProgressionStep,
 }
@@ -18,6 +19,10 @@ impl AudioHandler {
     /// Creates a new AudioHandler, loading and caching all audio resources.
     pub fn new(ctx: &mut Context) -> Self {
         let mut sound_effects = vec![
+            (
+                SoundEffect::ClickUIButton,
+                Source::new(ctx, "/click.wav").expect("Failed to load click sound effect"),
+            ),
             (
                 SoundEffect::CreateRoute,
                 Source::new(ctx, "/click.wav").expect("Failed to load click sound effect"),

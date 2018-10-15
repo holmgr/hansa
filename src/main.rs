@@ -23,6 +23,7 @@ pub mod tile;
 pub mod time;
 pub mod update;
 pub mod world;
+pub mod menustate;
 
 static GAME_ID: &str = "hansa";
 static AUTHOR: &str = "holmgr";
@@ -57,7 +58,7 @@ fn set_optimal_resolution(ctx: &mut Context) {
     }
 }
 
-pub fn main() {
+pub fn main() -> ggez::GameResult<()> {
     // Initialize default config, set specified parameters from command line.
     let mut config = config::Config::default();
     let args: Vec<String> = env::args().collect();
@@ -76,11 +77,14 @@ pub fn main() {
     }
     set_optimal_resolution(&mut ctx);
 
+
+    // Start main menu.
+    let menu_state = &mut menustate::MenuState::new(&mut ctx, config)?;
+
+    // Run main menu until clean exit.
+    event::run(&mut ctx, menu_state)?;
+
     // Start game.
-    let state = &mut gamestate::GameState::new(&mut ctx, config).unwrap();
-    if let Err(e) = event::run(&mut ctx, state) {
-        println!("Error encountered: {}", e);
-    } else {
-        println!("Game exited cleanly.");
-    }
+    let game_state = &mut gamestate::GameState::new(&mut ctx, config)?;
+    event::run(&mut ctx, game_state)
 }

@@ -1,4 +1,5 @@
 /// Holds game specific configurations.
+#[derive(Debug, Clone, Copy)]
 pub struct Config {
     pub scaling: u32, // Scaling needs to be handled due to Apples OpenGL implementation.
     pub grid_width: u32, // Width of the grid.
