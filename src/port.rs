@@ -37,8 +37,7 @@ pub struct Port {
 
 impl Port {
     /// Creates a new port.
-    pub fn new<R: Rng>(position: Position, gen: &mut R) -> Self {
-        let (import, export) = Port::sample_colors(gen);
+    pub fn new(position: Position, import: Color, export: Color) -> Self {
         Port {
             position,
             import,

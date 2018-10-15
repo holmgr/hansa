@@ -11,6 +11,7 @@ use std::{
 
 use animation::{Animation, AnimationType};
 use audio::{AudioHandler, SoundEffect};
+use color::Color;
 use config::Config;
 use draw::{Drawable, SpriteDrawer};
 use fonts::FontCache;
@@ -42,6 +43,18 @@ fn load_world<R: Rng>(ctx: &mut Context, config: &Config, color_sampler: &mut R)
     let mut open_ports = vec![];
     let mut closed_ports = vec![];
 
+    // Generate order of import, export colors for inital ports.
+    let (mut imports, mut exports) = (Color::values(), Color::values());
+    loop {
+        color_sampler.shuffle(&mut imports);
+        color_sampler.shuffle(&mut exports);
+
+        // Reshuffle until valid import/export combinations
+        if imports.iter().zip(exports.iter()).all(|(i, e)| i != e) {
+            break;
+        }
+    }
+
     buffer
         .as_slice()
         .chunks(3)
@@ -55,11 +68,14 @@ fn load_world<R: Rng>(ctx: &mut Context, config: &Config, color_sampler: &mut R)
             match colors {
                 [0, 0, 255] => map.push(Tile::new(position, TileKind::Water)),
                 [255, 0, 0] => {
-                    closed_ports.push(Port::new(position, color_sampler));
+                    let (import, export) = Port::sample_colors(color_sampler);
+                    closed_ports.push(Port::new(position, import, export));
                     map.push(Tile::new(position, TileKind::Land));
                 }
                 [0, 255, 0] => {
-                    open_ports.push(Port::new(position, color_sampler));
+                    let import = imports.pop().expect("More open ports than expected");
+                    let export = exports.pop().expect("More open ports than expected");
+                    open_ports.push(Port::new(position, import, export));
                     map.push(Tile::new(position, TileKind::Land));
                 }
                 _ => map.push(Tile::new(position, TileKind::Land)),
