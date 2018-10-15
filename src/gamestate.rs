@@ -4,6 +4,7 @@ use ggez::{
 use rand::prelude::*;
 use rand::{Rng, ThreadRng};
 use std::{
+    cell::RefCell,
     io::{BufRead, BufReader, Read},
     mem,
     time::Duration,
@@ -19,6 +20,7 @@ use geometry::Position;
 use port::{is_valid_arrangement, Port};
 use route::{RouteBuilder, ShapeSelector, Waypoint};
 use ship::ShipBuilder;
+use tally::Tally;
 use tile::{Tile, TileKind};
 use time::GameTimer;
 use update::Updatable;
@@ -92,7 +94,7 @@ fn load_world<R: Rng>(ctx: &mut Context, config: &Config, color_sampler: &mut R)
 static GAME_TIME_LENGTH: u64 = 60 * 5;
 
 /// Handles and holds all game information.
-pub struct GameState {
+pub struct GameState<'a> {
     font_cache: FontCache,
     audio_handler: AudioHandler,
     config: Config,
@@ -105,11 +107,13 @@ pub struct GameState {
     rng: ThreadRng,
     game_timer: GameTimer,
     last_progression_step: Duration,
+    tally: &'a RefCell<Tally>,
+    is_game_over: bool,
 }
 
-impl GameState {
+impl<'a> GameState<'a> {
     /// Creates a new game state in Play mode.
-    pub fn new(ctx: &mut Context, config: Config) -> GameResult<Self> {
+    pub fn new(ctx: &mut Context, config: Config, tally: &'a RefCell<Tally>) -> GameResult<Self> {
         let mut rng = thread_rng();
         // Load game world from file.
         let world = load_world(ctx, &config, &mut rng);
@@ -119,7 +123,6 @@ impl GameState {
         let sprite_drawer = SpriteDrawer::new(image);
 
         let audio_handler = AudioHandler::new(ctx);
-        audio_handler.start_music();
 
         let state = GameState {
             font_cache: FontCache::new(ctx),
@@ -137,6 +140,8 @@ impl GameState {
                 timer::get_time_since_start(ctx),
                 Duration::from_secs(GAME_TIME_LENGTH),
             ),
+            tally,
+            is_game_over: false,
         };
         Ok(state)
     }
@@ -177,16 +182,17 @@ impl GameState {
     /// Ends the game session.
     /// TODO: Currently only dumps the final score and quits.
     fn end_game(&mut self, ctx: &mut Context) {
-        println!("GAME OVER: Score {}", self.world.tally_mut().score());
+        println!("GAME OVER: Score {}", self.tally.borrow().score());
+        self.is_game_over = true;
         ctx.quit().expect("Failed to quit game");
     }
 }
 
-impl event::EventHandler for GameState {
+impl<'a> event::EventHandler for GameState<'a> {
     /// Updates the game state.
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         // Check if game time is up, end game in such case.
-        if self.game_timer.has_game_ended(ctx) {
+        if self.game_timer.has_game_ended(ctx) && !self.is_game_over {
             self.end_game(ctx);
         }
 
@@ -279,7 +285,7 @@ impl event::EventHandler for GameState {
             // Add score for all colors collected.
             new_colors
                 .into_iter()
-                .for_each(|c| self.world.tally_mut().update(c));
+                .for_each(|c| self.tally.borrow_mut().update(c));
 
             // Update all port animations.
             for port in self.world.ports_mut() {
@@ -584,8 +590,8 @@ impl event::EventHandler for GameState {
         self.sprite_drawer.paint(ctx, &self.config)?;
 
         // Draw tally.
-        self.world
-            .tally_mut()
+        self.tally
+            .borrow()
             .paint(self.font_cache.medium(), ctx, &self.config)?;
 
         // Draw shipyard.

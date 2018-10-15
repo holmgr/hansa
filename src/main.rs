@@ -4,8 +4,6 @@ extern crate ggez;
 extern crate rand;
 extern crate serde;
 extern crate serde_json;
-use ggez::{conf, event, Context};
-use std::{env, path::PathBuf};
 
 pub mod animation;
 pub mod audio;
@@ -15,15 +13,19 @@ pub mod draw;
 pub mod fonts;
 mod gamestate;
 pub mod geometry;
+pub mod menustate;
 pub mod port;
 pub mod route;
+pub mod scorestate;
 pub mod ship;
 pub mod tally;
 pub mod tile;
 pub mod time;
 pub mod update;
 pub mod world;
-pub mod menustate;
+
+use ggez::{conf, event, Context};
+use std::{cell::RefCell, env, path::PathBuf};
 
 static GAME_ID: &str = "hansa";
 static AUTHOR: &str = "holmgr";
@@ -77,14 +79,21 @@ pub fn main() -> ggez::GameResult<()> {
     }
     set_optimal_resolution(&mut ctx);
 
-
     // Start main menu.
     let menu_state = &mut menustate::MenuState::new(&mut ctx, config)?;
 
     // Run main menu until clean exit.
     event::run(&mut ctx, menu_state)?;
 
-    // Start game.
-    let game_state = &mut gamestate::GameState::new(&mut ctx, config)?;
-    event::run(&mut ctx, game_state)
+    let tally = RefCell::new(tally::Tally::new());
+
+    // Start game, run until completion.
+    let game_state = &mut gamestate::GameState::new(&mut ctx, config, &tally)?;
+    event::run(&mut ctx, game_state)?;
+
+    // Start score state.
+    let score_state = &mut scorestate::ScoreState::new(&mut ctx, &tally)?;
+    let result = event::run(&mut ctx, score_state);
+    println!("{:?}", result);
+    result
 }

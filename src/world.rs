@@ -5,7 +5,6 @@ use port::Port;
 use route::{find_path, reachable, Route, RouteShape, Waypoint};
 use ship::{Ship, Shipyard};
 use std::{collections::HashMap, iter::FromIterator};
-use tally::Tally;
 use tile::Tile;
 
 /// Holds all information on the game world.
@@ -16,7 +15,6 @@ pub struct World {
     closed_ports: Vec<Port>,
     routes: HashMap<RouteShape, Route>,
     shipyard: Shipyard,
-    tally: Tally,
 }
 
 impl World {
@@ -32,7 +30,6 @@ impl World {
             closed_ports: Vec::from_iter(closed_ports),
             routes: HashMap::new(),
             shipyard: Shipyard::new(),
-            tally: Tally::new(),
         }
     }
 
@@ -49,11 +46,6 @@ impl World {
         } else {
             None
         }
-    }
-
-    /// Returns a mutable reference to the tally.
-    pub fn tally_mut(&mut self) -> &mut Tally {
-        &mut self.tally
     }
 
     /// Returns a slice over all map tiles and their position.
@@ -200,7 +192,6 @@ impl Default for World {
             closed_ports: vec![],
             routes: HashMap::new(),
             shipyard: Shipyard::new(),
-            tally: Tally::new(),
         }
     }
 }
